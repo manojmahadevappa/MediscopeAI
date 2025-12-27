@@ -1,0 +1,5 @@
+# Authentication and Database Dependencies
+sqlalchemy==2.0.23
+passlib==1.7.4
+bcrypt==4.1.2
+python-dateutil==2.8.2

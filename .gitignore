@@ -1,0 +1,51 @@
+# 🔒 SECURITY - DO NOT COMMIT THESE FILES TO GIT
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Firebase credentials
+firebase-service-account.json
+*-firebase-adminsdk-*.json
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environment
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Model files (large)
+*.pth
+*.pt
+*.h5
+*.ckpt
+
+# Data
+Dataset/
+*.csv
+*.zip
+
+# Logs
+*.log
+logs/

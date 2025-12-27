@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Medical Assistant - MediscopeAI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .metric-card {
+      transition: box-shadow 0.2s ease;
+    }
+    .metric-card:hover {
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    /* Assistant tab styling */
+    .assistant-tab {
+      color: #6b7280;
+      border-color: transparent;
+      transition: all 0.2s ease;
+    }
+    
+    .assistant-tab:hover {
+      color: #10b981;
+      border-color: #d1fae5;
+    }
+    
+    .assistant-tab-active {
+      color: #10b981;
+      border-color: #10b981;
+    }
+    
+    /* Chat message styling */
+    .chat-message {
+      border-radius: 1rem;
+      padding: 0.75rem 1rem;
+      max-width: 70%;
+      word-wrap: break-word;
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Scroll animations */
+    .fade-in-up {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+    
+    .fade-in-up.animate {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .medical-content {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 1s ease, transform 1s ease;
+    }
+    
+    .medical-content.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .stagger-animation > * {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    
+    .stagger-animation.animate > *:nth-child(1) { transition-delay: 0.1s; }
+    .stagger-animation.animate > *:nth-child(2) { transition-delay: 0.2s; }
+    .stagger-animation.animate > *:nth-child(3) { transition-delay: 0.3s; }
+    .stagger-animation.animate > *:nth-child(4) { transition-delay: 0.4s; }
+    
+    .stagger-animation.animate > * {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    /* Typing animation styles */
+    .typing-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+    
+    .typing-indicator .dot {
+      width: 4px;
+      height: 4px;
+      background-color: #10b981;
+      border-radius: 50%;
+      animation: typing-bounce 1.4s infinite ease-in-out;
+    }
+    
+    .typing-indicator .dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-indicator .dot:nth-child(2) { animation-delay: -0.16s; }
+    .typing-indicator .dot:nth-child(3) { animation-delay: 0s; }
+    
+    @keyframes typing-bounce {
+      0%, 80%, 100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+      }
+      40% {
+        transform: scale(1.2);
+        opacity: 1;
+      }
+    }
+    
+    .typing-cursor {
+      color: #10b981;
+      animation: cursor-blink 1s infinite;
+      font-weight: bold;
+    }
+    
+    @keyframes cursor-blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+
+    /* Medical interpretation styling */
+    .medical-interpretation h3 {
+      color: #1f2937;
+      font-weight: 600;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.25rem;
+      border-bottom: 2px solid #10b981;
+    }
+    
+    .medical-interpretation h3:first-child {
+      margin-top: 0;
+    }
+    
+    .medical-interpretation p {
+      line-height: 1.6;
+      margin-bottom: 0.75rem;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 h-screen overflow-hidden flex flex-col">
+
+  <!-- Navigation -->
+  <nav class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
+            <i class="fas fa-brain text-white text-xl"></i>
+          </div>
+          <div>
+            <a href="/" class="text-xl font-bold text-gray-900">MediscopeAI</a>
+            <p class="text-xs text-gray-500">Advanced Diagnostics Platform</p>
+          </div>
+        </div>
+        
+        <div class="hidden md:flex items-center space-x-8">
+          <a href="/" class="text-gray-700 hover:text-blue-700 font-medium transition">Home</a>
+          <a href="/#features" class="text-gray-700 hover:text-blue-700 font-medium transition">Features</a>
+          <a href="/#services" class="text-gray-700 hover:text-blue-700 font-medium transition">Services</a>
+          <a href="/analyze" class="text-gray-700 hover:text-blue-700 font-medium transition">Analyze</a>
+          <a href="/dashboard" class="text-gray-700 hover:text-blue-700 font-medium transition">Dashboard</a>
+          <div id="auth-buttons">
+            <div class="flex items-center space-x-3">
+              <div class="text-right">
+                <p class="text-sm font-semibold text-gray-900" id="username-display">Medical Professional</p>
+                <p class="text-xs text-gray-500">AI Assistant</p>
+              </div>
+              <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Mobile Menu Button -->
+        <div class="md:hidden">
+          <button onclick="toggleMobileMenu()" class="text-gray-700 hover:text-blue-700">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Mobile Menu -->
+      <div id="mobile-menu" class="hidden md:hidden mt-4 pb-4 border-t border-gray-200">
+        <div class="flex flex-col space-y-3 pt-4">
+          <a href="/" class="text-gray-700 hover:text-blue-700 font-medium transition">Home</a>
+          <a href="/#features" class="text-gray-700 hover:text-blue-700 font-medium transition">Features</a>
+          <a href="/#services" class="text-gray-700 hover:text-blue-700 font-medium transition">Services</a>
+          <a href="/analyze" class="text-gray-700 hover:text-blue-700 font-medium transition">Analyze</a>
+          <a href="/dashboard" class="text-gray-700 hover:text-blue-700 font-medium transition">Dashboard</a>
+          <div id="mobile-auth-buttons">
+            <div class="mt-4 pt-4 border-t border-gray-200">
+              <p class="text-sm font-semibold text-gray-900 mb-2" id="mobile-username-display">Medical Professional</p>
+              <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition w-full flex items-center justify-center gap-2">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+
+    <!-- AI Assistant Feature -->
+    <div class="flex-1 flex flex-col bg-white max-w-4xl mx-auto w-full h-full overflow-hidden">
+      
+      <!-- Tab Navigation -->
+      <div class="border-b border-gray-200">
+        <nav class="flex space-x-8 px-8" aria-label="Tabs">
+          <button onclick="switchTab('insights')" id="insights-tab" class="assistant-tab-active whitespace-nowrap py-6 px-1 border-b-2 font-medium">
+            <i class="fas fa-lightbulb mr-2"></i>Medical Insights
+          </button>
+          <button onclick="switchTab('chat')" id="chat-tab" class="assistant-tab whitespace-nowrap py-6 px-1 border-b-2 font-medium">
+            <i class="fas fa-comments mr-2"></i>Ask Questions
+          </button>
+        </nav>
+      </div>
+      
+      <!-- Insights Tab Content -->
+      <div id="insights-content" class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 overflow-y-auto p-6">
+          <div id="assistant-insights" class="prose prose-sm max-w-none medical-content">
+            <div class="text-center py-12 text-gray-500">
+              <i class="fas fa-stethoscope text-3xl mb-4 text-emerald-400"></i>
+              <div class="text-base font-medium mb-2">Loading Medical Analysis</div>
+              <div class="text-xs">Retrieving your latest scan results and AI interpretation...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Chat Tab Content -->
+      <div id="chat-content" class="hidden flex-1 flex flex-col overflow-hidden">
+        <!-- Chat Messages Area -->
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4">
+          <div class="flex items-start space-x-4">
+            <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-user-md text-white text-sm"></i>
+            </div>
+            <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 max-w-lg">
+              <div class="text-xs text-emerald-800 font-medium mb-2">AI Medical Assistant</div>
+              <p class="text-emerald-700 text-sm">
+                Hello! I'm your AI medical assistant. I have access to your latest scan results and can help explain your diagnosis, answer questions about treatment options, prognosis, and next steps. 
+                <br><br>
+                <strong>What would you like to know about your medical results?</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Chat Input Area - Fixed at bottom -->
+        <div class="border-t border-gray-100 p-4 bg-white flex-shrink-0">
+          <div class="flex items-end space-x-3">
+            <div class="flex-1">
+              <input 
+                type="text"
+                id="chat-input"
+                placeholder="Ask me about your diagnosis, treatment options, prognosis, or any medical concerns..."
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none text-sm"
+                maxlength="500"
+              />
+            </div>
+            <button 
+              onclick="sendMessage()"
+              id="send-button"
+              class="bg-emerald-600 hover:bg-emerald-700 text-white p-2 rounded-lg font-medium transition flex items-center justify-center flex-shrink-0"
+            >
+              <i class="fas fa-paper-plane text-sm"></i>
+            </button>
+          </div>
+          <div class="flex justify-end text-xs text-gray-500 mt-2">
+            <span id="char-counter">0/500</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Get patient and result data from localStorage or session
+    let patientData = null;
+    let resultData = null;
+    let conversationHistory = [];
+    let currentUser = null;
+    
+    // Check authentication
+    function checkAuth() {
+      const token = localStorage.getItem('auth_token');
+      const username = localStorage.getItem('username');
+      
+      if (!token || !username) {
+        window.location.href = '/login';
+        return false;
+      }
+      
+      currentUser = { token, username };
+      
+      // Update username display
+      const usernameEl = document.getElementById('username-display');
+      const mobileUsernameEl = document.getElementById('mobile-username-display');
+      if (usernameEl) usernameEl.textContent = username;
+      if (mobileUsernameEl) mobileUsernameEl.textContent = username;
+      
+      return true;
+    }
+    
+    // Load data from multiple possible sources
+    try {
+      // Try different localStorage keys
+      const storedResult = localStorage.getItem('latestResult') || 
+                          localStorage.getItem('analysisResult') || 
+                          sessionStorage.getItem('latestResult');
+      const storedPatient = localStorage.getItem('patientData') || 
+                           localStorage.getItem('patientInfo') || 
+                           sessionStorage.getItem('patientData');
+      
+      if (storedResult) {
+        resultData = JSON.parse(storedResult);
+        console.log('✅ Loaded result data:', Object.keys(resultData));
+        console.log('🔍 Assistant summary available:', !!resultData.assistant_summary);
+      } else {
+        console.warn('⚠️ No result data found in storage');
+      }
+      
+      if (storedPatient) {
+        patientData = JSON.parse(storedPatient);
+        console.log('✅ Loaded patient data:', Object.keys(patientData));
+      } else {
+        console.warn('⚠️ No patient data found in storage');
+      }
+    } catch (e) {
+      console.warn('⚠️ Could not load stored data:', e);
+    }
+
+    // Tab switching functionality
+    function switchTab(tabName) {
+      const insightsTab = document.getElementById('insights-tab');
+      const chatTab = document.getElementById('chat-tab');
+      const insightsContent = document.getElementById('insights-content');
+      const chatContent = document.getElementById('chat-content');
+      
+      if (tabName === 'insights') {
+        insightsTab.className = 'assistant-tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm';
+        chatTab.className = 'assistant-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm';
+        insightsContent.classList.remove('hidden');
+        insightsContent.classList.add('flex-1', 'flex', 'flex-col', 'overflow-hidden');
+        chatContent.classList.add('hidden');
+      } else {
+        insightsTab.className = 'assistant-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm';
+        chatTab.className = 'assistant-tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm';
+        insightsContent.classList.add('hidden');
+        chatContent.classList.remove('hidden');
+        chatContent.classList.add('flex-1', 'flex', 'flex-col', 'overflow-hidden');
+      }
+    }
+
+    // Load AI Assistant insights
+    function loadInsights() {
+      const insightsEl = document.getElementById('assistant-insights');
+      
+      console.log('🔍 Loading insights...');
+      console.log('📊 Result data:', resultData ? Object.keys(resultData) : 'null');
+      console.log('📝 Assistant summary:', resultData?.assistant_summary ? 'Available' : 'Not available');
+      
+      if (!resultData) {
+        insightsEl.innerHTML = `
+          <div class="text-center py-12 text-gray-500 stagger-animation">
+            <i class="fas fa-exclamation-circle text-4xl mb-4 text-orange-400"></i>
+            <div class="text-lg font-medium mb-2">No Analysis Data Found</div>
+            <div class="text-sm mb-4">Unable to load your scan results. Please run a new analysis.</div>
+            <a href="/analyze" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+              <i class="fas fa-plus mr-2"></i>Analyze New Scan
+            </a>
+          </div>
+        `;
+        triggerScrollAnimations();
+        return;
+      }
+      
+      if (!resultData.assistant_summary) {
+        insightsEl.innerHTML = `
+          <div class="text-center py-12 text-gray-500 stagger-animation">
+            <i class="fas fa-robot text-4xl mb-4 text-blue-400"></i>
+            <div class="text-lg font-medium mb-2">AI Analysis Not Available</div>
+            <div class="text-sm mb-4">Your scan results don't include AI medical interpretation. Please run a new analysis to get insights.</div>
+            <div class="space-y-2">
+              <a href="/analyze" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition mr-2">
+                <i class="fas fa-plus mr-2"></i>New Analysis
+              </a>
+              <button onclick="switchTab('chat')" class="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition">
+                <i class="fas fa-comments mr-2"></i>Start Chat
+              </button>
+            </div>
+          </div>
+        `;
+        triggerScrollAnimations();
+        return;
+      }
+      
+      // Format the assistant summary with proper HTML
+      let formattedSummary = resultData.assistant_summary
+        .replace(/\*\*(.*?)\*\*/g, '<h3 class="font-semibold text-gray-900 mt-6 mb-3 first:mt-0">$1</h3>')
+        .replace(/\n\n/g, '</p><p class="text-gray-700 mb-4 leading-relaxed">')
+        .replace(/\n/g, '<br>')
+        .replace(/^/, '<p class="text-gray-700 mb-4 leading-relaxed">')
+        .replace(/$/, '</p>');
+      
+      insightsEl.innerHTML = `
+        <div class="medical-interpretation stagger-animation">
+          ${formattedSummary}
+        </div>
+      `;
+      
+      // Trigger animations after content is loaded
+      setTimeout(() => {
+        triggerScrollAnimations();
+      }, 100);
+      
+      console.log('✅ Insights loaded successfully');
+    }
+    
+    // Scroll animation functions
+    function triggerScrollAnimations() {
+      const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      };
+      
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('animate');
+            entry.target.classList.add('visible');
+          }
+        });
+      }, observerOptions);
+      
+      // Observe all animation elements
+      document.querySelectorAll('.fade-in-up, .medical-content, .stagger-animation').forEach(el => {
+        observer.observe(el);
+      });
+    }
+
+    // Chat functionality
+    function sendMessage() {
+      const input = document.getElementById('chat-input');
+      const message = input.value.trim();
+      
+      if (!message) return;
+      
+      // Check authentication
+      if (!currentUser || !currentUser.token) {
+        addMessageToChat('assistant', 'Authentication required. Please log in again.');
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+        return;
+      }
+      
+      console.log('🔄 Sending message:', message);
+      
+      // Check if we have result data
+      if (!resultData) {
+        addMessageToChat('assistant', 'I need access to your scan results to provide medical guidance. Please run an analysis first and return to this page.');
+        return;
+      }
+      
+      // Add user message to chat
+      addMessageToChat('user', message);
+      
+      // Clear input and show loading
+      input.value = '';
+      updateCharCounter();
+      const sendBtn = document.getElementById('send-button');
+      const originalContent = sendBtn.innerHTML;
+      sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      sendBtn.disabled = true;
+      
+      // Add to conversation history
+      conversationHistory.push({ role: 'user', content: message });
+      
+      // Prepare request data
+      const requestData = {
+        message: message,
+        conversation_history: conversationHistory,
+        patient_data: patientData || {},
+        result_data: resultData || {}
+      };
+      
+      console.log('📤 Sending request data:', requestData);
+      
+      // Send to backend with authentication
+      fetch('/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${currentUser.token}`
+        },
+        body: JSON.stringify(requestData),
+        credentials: 'include'
+      })
+      .then(response => {
+        console.log('📥 Response status:', response.status);
+        
+        if (response.status === 401) {
+          throw new Error('Authentication expired. Please log in again.');
+        }
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return response.json();
+      })
+      .then(data => {
+        console.log('✅ Chat response:', data);
+        
+        sendBtn.innerHTML = originalContent;
+        sendBtn.disabled = false;
+        
+        if (data.success && data.response) {
+          addMessageToChat('assistant', data.response);
+          conversationHistory.push({ role: 'assistant', content: data.response });
+        } else if (data.error) {
+          console.error('❌ Chat error:', data.error);
+          addMessageToChat('assistant', `Error: ${data.error}`);
+        } else {
+          console.error('❌ Unexpected response format:', data);
+          addMessageToChat('assistant', 'Sorry, I received an unexpected response. Please try again.');
+        }
+      })
+      .catch(error => {
+        console.error('❌ Network/Parse error:', error);
+        sendBtn.innerHTML = originalContent;
+        sendBtn.disabled = false;
+        
+        if (error.message.includes('Authentication expired')) {
+          addMessageToChat('assistant', 'Your session has expired. Redirecting to login...');
+          setTimeout(() => {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('username');
+            window.location.href = '/login';
+          }, 2000);
+        } else {
+          let errorMessage = 'I apologize, but I\'m having trouble connecting right now.';
+          
+          if (error.message.includes('401')) {
+            errorMessage = 'Authentication required. Please log in again.';
+          } else if (error.message.includes('403')) {
+            errorMessage = 'Access denied. Please check your permissions.';
+          } else if (error.message.includes('500')) {
+            errorMessage = 'Server error. Please try again in a moment.';
+          } else if (error.message.includes('Failed to fetch')) {
+            errorMessage = 'Network connection error. Please check your internet connection.';
+          }
+          
+          addMessageToChat('assistant', errorMessage);
+        }
+      });
+    }
+
+    function addMessageToChat(role, message) {
+      const chatMessages = document.getElementById('chat-messages');
+      const messageDiv = document.createElement('div');
+      
+      if (role === 'user') {
+        messageDiv.innerHTML = `
+          <div class="flex items-start space-x-4 justify-end">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-lg chat-message">
+              <p class="text-blue-800">${message}</p>
+            </div>
+            <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-user text-white"></i>
+            </div>
+          </div>
+        `;
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      } else {
+        // Create assistant message with typing indicator
+        const messageId = 'msg-' + Date.now();
+        messageDiv.innerHTML = `
+          <div class="flex items-start space-x-4">
+            <div class="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-user-md text-white"></i>
+            </div>
+            <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 max-w-lg chat-message">
+              <div class="text-sm text-emerald-800 font-medium mb-1">AI Medical Assistant</div>
+              <div id="${messageId}" class="text-emerald-700">
+                <div class="typing-indicator">
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        // Start typing animation after a brief delay
+        setTimeout(() => {
+          typeMessage(messageId, message);
+        }, 500);
+      }
+    }
+    
+    // Typing animation function
+    function typeMessage(elementId, fullMessage) {
+      const element = document.getElementById(elementId);
+      if (!element) return;
+      
+      // Clear typing indicator
+      element.innerHTML = '';
+      
+      // Convert line breaks to HTML
+      const formattedMessage = fullMessage.replace(/\n/g, '<br>');
+      
+      // Split into words for smoother animation
+      const words = formattedMessage.split(' ');
+      let currentIndex = 0;
+      let currentText = '';
+      
+      function typeNextWord() {
+        if (currentIndex < words.length) {
+          const word = words[currentIndex];
+          currentText += (currentIndex === 0 ? '' : ' ') + word;
+          
+          // Update the element with current text
+          element.innerHTML = currentText + '<span class="typing-cursor">|</span>';
+          
+          currentIndex++;
+          
+          // Scroll to bottom as text appears
+          const chatMessages = document.getElementById('chat-messages');
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+          
+          // Variable speed based on word length
+          const delay = word.length < 3 ? 50 : word.length < 6 ? 80 : 120;
+          setTimeout(typeNextWord, delay);
+        } else {
+          // Remove cursor when done
+          element.innerHTML = currentText;
+          
+          // Final scroll to bottom
+          const chatMessages = document.getElementById('chat-messages');
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+      }
+      
+      typeNextWord();
+    }
+
+    function updateCharCounter() {
+      const input = document.getElementById('chat-input');
+      const counter = document.getElementById('char-counter');
+      const length = input.value.length;
+      counter.textContent = `${length}/500`;
+      
+      if (length > 450) {
+        counter.classList.add('text-red-500');
+      } else {
+        counter.classList.remove('text-red-500');
+      }
+    }
+    
+    // Navigation functions
+    function toggleMobileMenu() {
+      const mobileMenu = document.getElementById('mobile-menu');
+      mobileMenu.classList.toggle('hidden');
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/';
+    }
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('🤖 AI Assistant page initializing...');
+      
+      // Check authentication first
+      if (!checkAuth()) {
+        return; // Will redirect to login
+      }
+      
+      // Debug localStorage contents
+      console.log('🔍 Debug localStorage contents:');
+      console.log('  - auth_token exists:', !!localStorage.getItem('auth_token'));
+      console.log('  - username:', localStorage.getItem('username'));
+      console.log('  - latestResult exists:', !!localStorage.getItem('latestResult'));
+      console.log('  - patientData exists:', !!localStorage.getItem('patientData'));
+      console.log('  - analysisResult exists:', !!localStorage.getItem('analysisResult'));
+      
+      if (resultData) {
+        console.log('📊 Result data keys:', Object.keys(resultData));
+        console.log('🤖 Assistant summary length:', resultData.assistant_summary ? resultData.assistant_summary.length : 0);
+        console.log('🔍 Assistant summary preview:', resultData.assistant_summary ? resultData.assistant_summary.substring(0, 100) + '...' : 'None');
+      } else {
+        console.warn('⚠️ No result data available');
+      }
+      
+      if (patientData) {
+        console.log('👤 Patient data keys:', Object.keys(patientData));
+      } else {
+        console.warn('⚠️ No patient data available');
+      }
+      
+      // Load insights immediately
+      loadInsights();
+      
+      // Initialize scroll animations
+      setTimeout(() => {
+        triggerScrollAnimations();
+      }, 500);
+      
+      // Set up chat input handlers
+      const chatInput = document.getElementById('chat-input');
+      if (chatInput) {
+        chatInput.addEventListener('input', updateCharCounter);
+        chatInput.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            sendMessage();
+          }
+        });
+      }
+      
+      console.log('🚀 AI Assistant page ready');
+    });
+  </script>
+
+</body>
+</html>

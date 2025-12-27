@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard - MediscopeAI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    }
+    .card-hover {
+      transition: all 0.3s ease;
+    }
+    .card-hover:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+
+<body class="min-h-screen">
+
+  <!-- Navigation Bar -->
+  <nav class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+          <div>
+            <a href="/" class="text-xl font-bold text-gray-900">MediscopeAI</a>
+            <p class="text-xs text-gray-500">Advanced Diagnostics Platform</p>
+          </div>
+        </div>
+        
+        <div class="hidden md:flex items-center space-x-8">
+          <a href="/" class="text-gray-700 hover:text-blue-700 font-medium transition">Home</a>
+          <a href="/#features" class="text-gray-700 hover:text-blue-700 font-medium transition">Features</a>
+          <a href="/#services" class="text-gray-700 hover:text-blue-700 font-medium transition">Services</a>
+          <a href="/analyze" class="text-gray-700 hover:text-blue-700 font-medium transition">Analyze</a>
+          <a href="/dashboard" class="text-blue-700 font-bold border-b-2 border-blue-700">Dashboard</a>
+          <div id="auth-buttons">
+            <div class="flex items-center space-x-3">
+              <div class="text-right">
+                <p class="text-sm font-semibold text-gray-900" id="username-display">Loading...</p>
+              </div>
+              <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Mobile Menu Button -->
+        <div class="md:hidden">
+          <button onclick="toggleMobileMenu()" class="text-gray-700 hover:text-blue-700">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Mobile Menu -->
+      <div id="mobile-menu" class="hidden md:hidden mt-4 pb-4 border-t border-gray-200">
+        <div class="flex flex-col space-y-3 pt-4">
+          <a href="/" class="text-gray-700 hover:text-blue-700 font-medium transition">Home</a>
+          <a href="/#features" class="text-gray-700 hover:text-blue-700 font-medium transition">Features</a>
+          <a href="/#services" class="text-gray-700 hover:text-blue-700 font-medium transition">Services</a>
+          <a href="/analyze" class="text-gray-700 hover:text-blue-700 font-medium transition">Analyze</a>
+          <a href="/dashboard" class="text-blue-700 font-bold">Dashboard</a>
+          <div id="mobile-auth-buttons">
+            <div class="mt-4 pt-4 border-t border-gray-200">
+              <p class="text-sm font-semibold text-gray-900 mb-2" id="mobile-username-display">Loading...</p>
+              <button onclick="logout()" class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition">
+                <i class="fas fa-sign-out-alt mr-2"></i>Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Dashboard Content -->
+  <div class="max-w-7xl mx-auto px-6 py-8">
+    
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div class="bg-white rounded-2xl shadow-lg p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-500 text-sm font-medium">Total Analyses</p>
+            <p class="text-3xl font-bold text-gray-900 mt-1" id="total-analyses">0</p>
+          </div>
+          <div class="bg-blue-50 p-4 rounded-xl">
+            <i class="fas fa-chart-line text-blue-900 text-2xl"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-lg p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-500 text-sm font-medium">This Month</p>
+            <p class="text-3xl font-bold text-gray-900 mt-1" id="month-analyses">0</p>
+          </div>
+          <div class="bg-slate-100 p-4 rounded-xl">
+            <i class="fas fa-calendar-alt text-slate-700 text-2xl"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Card -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 cursor-pointer hover:shadow-xl transition-all duration-300 card-hover" onclick="openProfileModal()">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold text-gray-900">
+          <i class="fas fa-user-circle mr-2 text-blue-900"></i>Profile Information
+        </h2>
+        <div class="text-gray-400">
+          <i class="fas fa-edit text-sm"></i>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+            <i class="fas fa-user text-blue-600"></i>
+          </div>
+          <div>
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Name</p>
+            <p id="card-display-name" class="font-medium text-gray-900">Not provided</p>
+          </div>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center">
+            <i class="fas fa-phone text-emerald-600"></i>
+          </div>
+          <div>
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Phone</p>
+            <p id="card-display-phone" class="font-medium text-gray-900">Not provided</p>
+          </div>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+            <i class="fas fa-map-marker-alt text-purple-600"></i>
+          </div>
+          <div>
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Address</p>
+            <p id="card-display-address" class="font-medium text-gray-900">Not provided</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analysis History -->
+    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+      <div class="bg-gradient-to-r from-blue-900 to-blue-800 px-6 py-4">
+        <div class="flex justify-between items-center">
+          <h2 class="text-xl font-bold text-white">
+            <i class="fas fa-history mr-2"></i>Analysis History
+          </h2>
+          <a href="/" class="bg-white/20 backdrop-blur text-white px-4 py-2 rounded-lg hover:bg-white/30 transition border border-white/30">
+            <i class="fas fa-plus mr-2"></i>New Analysis
+          </a>
+        </div>
+      </div>
+
+      <!-- Filter Controls -->
+      <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+        <div class="flex flex-wrap gap-4 items-center">
+          <div class="flex items-center space-x-2">
+            <i class="fas fa-filter text-gray-500"></i>
+            <span class="text-sm font-medium text-gray-700">Filters:</span>
+          </div>
+          
+          <div class="flex items-center space-x-2">
+            <label for="month-filter" class="text-sm text-gray-600">Month:</label>
+            <select id="month-filter" class="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="all">All Months</option>
+              <option value="current">This Month</option>
+              <option value="last">Last Month</option>
+              <option value="last3">Last 3 Months</option>
+              <option value="last6">Last 6 Months</option>
+            </select>
+          </div>
+          
+          <div class="flex items-center space-x-2">
+            <label for="prediction-filter" class="text-sm text-gray-600">Type:</label>
+            <select id="prediction-filter" class="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="all">All Types</option>
+              <option value="healthy">Healthy</option>
+              <option value="benign">Benign</option>
+              <option value="malignant">Malignant</option>
+            </select>
+          </div>
+          
+          <button onclick="clearFilters()" class="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+            <i class="fas fa-times mr-1"></i>Clear
+          </button>
+          
+          <div class="ml-auto text-xs text-gray-500">
+            <span id="results-count">0 results</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-6">
+        <!-- Loading State -->
+        <div id="loading" class="text-center py-12">
+          <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
+          </div>
+          <p class="text-gray-600 font-medium">Loading your analysis history...</p>
+          <p class="text-sm text-gray-500 mt-1">Please wait while we fetch your data</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden text-center py-12">
+          <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-brain text-3xl text-gray-400"></i>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">No analyses yet</h3>
+          <p class="text-gray-600 mb-6 max-w-md mx-auto">
+            Start your medical journey by uploading your first brain scan for AI-powered analysis.
+          </p>
+          <a href="/analyze" class="inline-flex items-center bg-blue-900 text-white px-6 py-3 rounded-lg hover:bg-blue-800 transition shadow-lg">
+            <i class="fas fa-upload mr-2"></i>Upload Your First Scan
+          </a>
+        </div>
+
+        <!-- Analysis Cards -->
+        <div id="analyses-grid" class="hidden">
+          <!-- Cards will be inserted here dynamically -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Profile Modal -->
+  <div id="profile-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto">
+      <!-- Modal Header -->
+      <div class="flex justify-between items-center p-6 border-b border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900">
+          <i class="fas fa-user-circle mr-2 text-blue-900"></i>Profile Information
+        </h2>
+        <button onclick="closeProfileModal()" class="text-gray-400 hover:text-gray-600 text-xl">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Modal Content -->
+      <div class="p-6">
+        <!-- Profile Display Mode -->
+        <div id="modal-profile-display">
+          <div class="grid grid-cols-1 gap-4 mb-6">
+            <div class="bg-gray-50 rounded-lg p-4">
+              <div class="flex items-center mb-2">
+                <i class="fas fa-user text-gray-600 mr-2"></i>
+                <span class="text-sm font-medium text-gray-600">Full Name</span>
+              </div>
+              <p id="modal-display-name" class="text-lg font-semibold text-gray-900">Not provided</p>
+            </div>
+            
+            <div class="bg-gray-50 rounded-lg p-4">
+              <div class="flex items-center mb-2">
+                <i class="fas fa-phone text-gray-600 mr-2"></i>
+                <span class="text-sm font-medium text-gray-600">Phone Number</span>
+              </div>
+              <p id="modal-display-phone" class="text-lg font-semibold text-gray-900">Not provided</p>
+            </div>
+            
+            <div class="bg-gray-50 rounded-lg p-4">
+              <div class="flex items-center mb-2">
+                <i class="fas fa-map-marker-alt text-gray-600 mr-2"></i>
+                <span class="text-sm font-medium text-gray-600">Address</span>
+              </div>
+              <p id="modal-display-address" class="text-lg font-semibold text-gray-900">Not provided</p>
+            </div>
+          </div>
+          
+          <div class="flex justify-end">
+            <button onclick="toggleModalProfileEdit()" class="bg-blue-900 text-white px-6 py-2 rounded-lg hover:bg-blue-800 transition">
+              <i class="fas fa-edit mr-2"></i>Edit Profile
+            </button>
+          </div>
+        </div>
+
+        <!-- Profile Edit Mode -->
+        <div id="modal-profile-edit" class="hidden">
+          <form id="modal-profile-form" class="space-y-4">
+            <div>
+              <label for="modal-profile-name" class="block text-sm font-medium text-gray-700 mb-2">
+                <i class="fas fa-user mr-2"></i>Full Name
+              </label>
+              <input type="text" id="modal-profile-name" name="name" 
+                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                     placeholder="Enter your full name">
+            </div>
+            
+            <div>
+              <label for="modal-profile-phone" class="block text-sm font-medium text-gray-700 mb-2">
+                <i class="fas fa-phone mr-2"></i>Phone Number
+              </label>
+              <input type="tel" id="modal-profile-phone" name="phone" 
+                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                     placeholder="Enter your phone number">
+            </div>
+            
+            <div>
+              <label for="modal-profile-address" class="block text-sm font-medium text-gray-700 mb-2">
+                <i class="fas fa-map-marker-alt mr-2"></i>Address
+              </label>
+              <input type="text" id="modal-profile-address" name="address" 
+                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                     placeholder="Enter your address">
+            </div>
+            
+            <div class="flex justify-end space-x-4 pt-4">
+              <button type="button" onclick="cancelModalProfileEdit()" 
+                      class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
+                <i class="fas fa-times mr-2"></i>Cancel
+              </button>
+              <button type="submit" 
+                      class="bg-blue-900 text-white px-6 py-2 rounded-lg hover:bg-blue-800 transition">
+                <i class="fas fa-save mr-2"></i>Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleMobileMenu() {
+      const mobileMenu = document.getElementById('mobile-menu');
+      mobileMenu.classList.toggle('hidden');
+    }
+
+    let currentUser = null;
+
+    // Check authentication
+    function checkAuth() {
+      const token = localStorage.getItem('auth_token');
+      const username = localStorage.getItem('username');
+      
+      if (!token || !username) {
+        window.location.href = '/login';
+        return false;
+      }
+      
+      currentUser = { token, username };
+      document.getElementById('username-display').textContent = username;
+      return true;
+    }
+
+    // Logout
+    async function logout() {
+      const token = localStorage.getItem('auth_token');
+      
+      try {
+        await fetch('/api/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+      } catch (e) {
+        console.error('Logout error:', e);
+      }
+      
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('username');
+      window.location.href = '/login';
+    }
+
+    // Global variable to store all analyses
+    let allAnalyses = [];
+
+    // Helper functions for severity display
+    function getSeverityColor(prediction) {
+      if (!prediction) return {
+        bg: 'bg-gray-100',
+        text: 'text-gray-600',
+        badge: 'bg-gray-100 text-gray-800'
+      };
+      
+      const pred = prediction.toLowerCase();
+      
+      if (pred.includes('healthy') || pred.includes('normal')) {
+        return {
+          bg: 'bg-green-100',
+          text: 'text-green-600',
+          badge: 'bg-green-100 text-green-800'
+        };
+      } else if (pred.includes('tumor') || pred.includes('cancer')) {
+        return {
+          bg: 'bg-red-100',
+          text: 'text-red-600',
+          badge: 'bg-red-100 text-red-800'
+        };
+      } else {
+        return {
+          bg: 'bg-yellow-100',
+          text: 'text-yellow-600',
+          badge: 'bg-yellow-100 text-yellow-800'
+        };
+      }
+    }
+
+    function getSeverityIcon(prediction) {
+      if (!prediction) return 'fas fa-question-circle';
+      
+      const pred = prediction.toLowerCase();
+      
+      if (pred.includes('healthy') || pred.includes('normal')) {
+        return 'fas fa-check-circle';
+      } else if (pred.includes('tumor') || pred.includes('cancer')) {
+        return 'fas fa-exclamation-triangle';
+      } else {
+        return 'fas fa-info-circle';
+      }
+    }
+
+    // Filtering functions
+    function filterAnalyses() {
+      const monthFilter = document.getElementById('month-filter').value;
+      const predictionFilter = document.getElementById('prediction-filter').value;
+      
+      let filteredAnalyses = [...allAnalyses];
+      
+      // Apply month filter
+      if (monthFilter !== 'all') {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        
+        filteredAnalyses = filteredAnalyses.filter(analysis => {
+          const analysisDate = new Date(analysis.created_at);
+          const analysisMonth = analysisDate.getMonth();
+          const analysisYear = analysisDate.getFullYear();
+          
+          switch (monthFilter) {
+            case 'current':
+              return analysisMonth === currentMonth && analysisYear === currentYear;
+            case 'last':
+              const lastMonth = new Date(currentYear, currentMonth - 1);
+              return analysisMonth === lastMonth.getMonth() && analysisYear === lastMonth.getFullYear();
+            case 'last3':
+              const threeMonthsAgo = new Date();
+              threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+              return analysisDate >= threeMonthsAgo;
+            case 'last6':
+              const sixMonthsAgo = new Date();
+              sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+              return analysisDate >= sixMonthsAgo;
+            default:
+              return true;
+          }
+        });
+      }
+      
+      // Apply prediction filter
+      if (predictionFilter !== 'all') {
+        filteredAnalyses = filteredAnalyses.filter(analysis => {
+          const prediction = (analysis.final_prediction || '').toLowerCase();
+          
+          switch (predictionFilter) {
+            case 'healthy':
+              return prediction.includes('healthy') || prediction.includes('normal');
+            case 'benign':
+              return prediction.includes('benign');
+            case 'malignant':
+              return prediction.includes('malignant') || prediction.includes('cancer') || prediction.includes('tumor');
+            default:
+              return true;
+          }
+        });
+      }
+      
+      // Update results count
+      document.getElementById('results-count').textContent = `${filteredAnalyses.length} result${filteredAnalyses.length !== 1 ? 's' : ''}`;
+      
+      // Render filtered analyses
+      renderAnalyses(filteredAnalyses);
+      
+      // Show/hide empty state
+      if (filteredAnalyses.length === 0) {
+        document.getElementById('analyses-grid').classList.add('hidden');
+        document.getElementById('empty-state').classList.remove('hidden');
+      } else {
+        document.getElementById('empty-state').classList.add('hidden');
+        document.getElementById('analyses-grid').classList.remove('hidden');
+        document.getElementById('analyses-grid').className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
+      }
+    }
+    
+    function clearFilters() {
+      document.getElementById('month-filter').value = 'all';
+      document.getElementById('prediction-filter').value = 'all';
+      filterAnalyses();
+    }
+
+    // Load dashboard data
+    async function loadDashboard() {
+      if (!checkAuth()) return;
+
+      try {
+        const response = await fetch('/api/dashboard', {
+          headers: {
+            'Authorization': `Bearer ${currentUser.token}`
+          }
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            logout();
+            return;
+          }
+          throw new Error('Failed to load dashboard');
+        }
+
+        const data = await response.json();
+        
+        // Store all analyses globally
+        allAnalyses = data.analyses || [];
+        
+        // Calculate month count from analyses data
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+        const monthCount = allAnalyses.filter(analysis => {
+          const analysisDate = new Date(analysis.created_at);
+          return analysisDate.getMonth() === currentMonth && analysisDate.getFullYear() === currentYear;
+        }).length;
+        
+        // Update stats
+        document.getElementById('total-analyses').textContent = allAnalyses.length;
+        document.getElementById('month-analyses').textContent = monthCount;
+
+        // Hide loading
+        document.getElementById('loading').classList.add('hidden');
+
+        // Show analyses or empty state
+        if (allAnalyses.length === 0) {
+          document.getElementById('empty-state').classList.remove('hidden');
+        } else {
+          // Set up filter event listeners
+          document.getElementById('month-filter').addEventListener('change', filterAnalyses);
+          document.getElementById('prediction-filter').addEventListener('change', filterAnalyses);
+          // Initial render with all analyses
+          filterAnalyses();
+        }
+
+      } catch (error) {
+        console.error('Dashboard error:', error);
+        document.getElementById('loading').innerHTML = `
+          <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-3"></i>
+          <p class="text-red-600">Failed to load dashboard</p>
+        `;
+      }
+    }
+
+    // Render analysis cards
+    function renderAnalyses(analyses) {
+      const grid = document.getElementById('analyses-grid');
+      grid.innerHTML = '';
+
+      analyses.forEach(analysis => {
+        const severityColor = getSeverityColor(analysis.final_prediction);
+        const severityIcon = getSeverityIcon(analysis.final_prediction);
+        
+        const card = document.createElement('div');
+        card.className = 'border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 bg-white hover:border-blue-200';
+        
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-3">
+              <div class="w-12 h-12 ${severityColor.bg} rounded-xl flex items-center justify-center shadow-sm">
+                <i class="${severityIcon} ${severityColor.text} text-lg"></i>
+              </div>
+              <div>
+                <h3 class="font-bold text-gray-900 text-lg">${analysis.patient_name || 'Anonymous Patient'}</h3>
+                <p class="text-sm text-gray-600 flex items-center">
+                  <i class="fas fa-calendar-alt mr-1 text-gray-400 text-xs"></i>
+                  ${new Date(analysis.created_at).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <div class="inline-flex items-center px-3 py-1.5 text-sm font-semibold ${severityColor.badge} rounded-full">
+              <i class="${severityIcon} mr-1.5 text-xs"></i>
+              ${analysis.final_prediction || 'Pending Analysis'}
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-3 border border-gray-100">
+              <div class="flex items-center space-x-2 mb-1">
+                <i class="fas fa-birthday-cake text-blue-500 text-xs"></i>
+                <p class="text-xs font-medium text-gray-600 uppercase tracking-wide">Age</p>
+              </div>
+              <p class="text-sm font-bold text-gray-900">${analysis.patient_age || 'Unknown'}</p>
+            </div>
+            <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-3 border border-gray-100">
+              <div class="flex items-center space-x-2 mb-1">
+                <i class="fas fa-venus-mars text-purple-500 text-xs"></i>
+                <p class="text-xs font-medium text-gray-600 uppercase tracking-wide">Gender</p>
+              </div>
+              <p class="text-sm font-bold text-gray-900">${analysis.patient_gender || 'Unknown'}</p>
+            </div>
+          </div>
+          
+          <div class="pt-3 border-t border-gray-100">
+            <button class="download-report-btn w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3 rounded-lg text-sm font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center space-x-2">
+              <i class="fas fa-download"></i>
+              <span>Download Report</span>
+            </button>
+          </div>
+        `;
+        
+        // Attach event listener to the button with the analysis data
+        const downloadBtn = card.querySelector('.download-report-btn');
+        downloadBtn.addEventListener('click', () => downloadReport(analysis));
+        
+        grid.appendChild(card);
+      });
+    }
+
+    // View specific analysis in results page
+    function viewAnalysis(analysisId) {
+      if (analysisId) {
+        window.location.href = `/results?id=${analysisId}`;
+      } else {
+        window.location.href = '/results';
+      }
+    }
+
+    // Download analysis report as formatted text file
+    async function downloadReport(analysis) {
+      try {
+        // Format probabilities
+        let probsText = 'N/A';
+        if (analysis.final_probs && Array.isArray(analysis.final_probs)) {
+          probsText = analysis.final_probs.map((p, i) => `  Class ${i}: ${(p * 100).toFixed(2)}%`).join('\n');
+        }
+        
+        // Format severity
+        let severityText = 'N/A';
+        if (analysis.final_severity && analysis.final_severity.label) {
+          severityText = `${analysis.final_severity.label} (Level ${analysis.final_severity.level || 0})`;
+        }
+        
+        // Format imaging info
+        let imagingInfo = '';
+        if (analysis.original_ct || analysis.original_mri) {
+          imagingInfo = '\nImaging Studies:\n-----------------\n';
+          if (analysis.original_ct) imagingInfo += '✓ CT Scan Available\n';
+          if (analysis.original_mri) imagingInfo += '✓ MRI Scan Available\n';
+          if (analysis.gradcam_ct || analysis.gradcam_mri) {
+            imagingInfo += '\nAI Explainability:\n';
+            if (analysis.gradcam_ct) imagingInfo += '✓ CT Grad-CAM Heatmap Generated\n';
+            if (analysis.gradcam_mri) imagingInfo += '✓ MRI Grad-CAM Heatmap Generated\n';
+          }
+        }
+        
+        // Create comprehensive report
+        const reportContent = `
+════════════════════════════════════════════════════════════════════════════════
+                           MEDISCOPEAI MEDICAL CENTER                            
+                          RADIOLOGY DIAGNOSTIC REPORT                            
+                             Brain Imaging Analysis                              
+════════════════════════════════════════════════════════════════════════════════
+
+REPORT INFORMATION
+──────────────────────────────────────────────────────────────────────────────
+Report ID:                   ${analysis.id || 'N/A'}
+Date of Analysis:            ${new Date(analysis.created_at).toLocaleDateString('en-US', { 
+                               weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                             })}
+Time of Analysis:            ${new Date(analysis.created_at).toLocaleTimeString('en-US')}
+Report Generated:            ${new Date().toLocaleDateString('en-US')} at ${new Date().toLocaleTimeString('en-US')}
+
+PATIENT DEMOGRAPHICS
+──────────────────────────────────────────────────────────────────────────────
+Name:                        ${analysis.patient_name && analysis.patient_name !== 'Anonymous Patient' ? analysis.patient_name : 'CONFIDENTIAL'}
+Age:                         ${analysis.patient_age && analysis.patient_age !== 'Unknown' ? analysis.patient_age + ' years' : 'Not Specified'}
+Gender:                      ${analysis.patient_gender && analysis.patient_gender !== 'Unknown' ? analysis.patient_gender : 'Not Specified'}
+Study Date:                  ${new Date(analysis.created_at).toLocaleDateString('en-US')}
+
+CLINICAL INDICATION
+──────────────────────────────────────────────────────────────────────────────
+${analysis.patient_notes || 'Brain imaging requested for suspected intracranial pathology evaluation.'}
+
+IMAGING TECHNIQUE
+──────────────────────────────────────────────────────────────────────────────${analysis.original_ct || analysis.original_mri ? `
+Modality:                    ${analysis.original_ct ? 'Computed Tomography (CT)' : ''}${analysis.original_ct && analysis.original_mri ? ', ' : ''}${analysis.original_mri ? 'Magnetic Resonance Imaging (MRI)' : ''}
+Analysis Method:             Deep Learning AI-Assisted Evaluation
+Image Processing:            ${analysis.stage || 'Two-Stage Classification (Binary → Multiclass)'}${analysis.gradcam_ct || analysis.gradcam_mri ? `
+Explainability:              Gradient-weighted Class Activation Mapping (Grad-CAM)` : ''}` : `
+No imaging data available for analysis.`}
+
+FINDINGS & IMPRESSION
+──────────────────────────────────────────────────────────────────────────────
+Primary Diagnosis:           ${analysis.final_prediction || 'INDETERMINATE'}
+
+Diagnostic Confidence:       
+${probsText}
+
+Severity Assessment:         ${severityText}
+
+INTERPRETATION
+──────────────────────────────────────────────────────────────────────────────
+${analysis.assistant_summary || 'The AI-assisted analysis was unable to generate a comprehensive interpretation. Manual review by a qualified radiologist is recommended.'}
+
+TECHNICAL NOTES
+──────────────────────────────────────────────────────────────────────────────
+• Analysis performed using MediscopeAI deep learning algorithms
+• Image quality assessed as adequate for AI interpretation${analysis.gradcam_ct || analysis.gradcam_mri ? `
+• Heat map visualization available for clinical correlation` : ''}
+• Automated quality control checks completed successfully
+
+RECOMMENDATIONS
+──────────────────────────────────────────────────────────────────────────────
+1. Clinical correlation with patient history and physical examination
+2. Consider follow-up imaging if clinically indicated
+3. Radiologist review recommended for definitive interpretation
+4. Multidisciplinary team consultation for treatment planning if pathology confirmed
+
+LIMITATIONS
+──────────────────────────────────────────────────────────────────────────────
+• AI-assisted analysis for screening purposes only
+• Results require validation by certified radiologist
+• Clinical context and patient history not fully incorporated
+• Algorithm performance may vary with image quality and pathology type
+
+PHYSICIAN SIGNATURE
+──────────────────────────────────────────────────────────────────────────────
+Analyzing System:            MediscopeAI v2.0 Deep Learning Platform
+Reviewed by:                 [PENDING RADIOLOGIST REVIEW]
+Date:                        ${new Date().toLocaleDateString('en-US')}
+
+════════════════════════════════════════════════════════════════════════════════
+
+                                 DISCLAIMER                                    
+                                                                              
+This report has been generated using artificial intelligence technology and   
+is intended for preliminary screening purposes only. This analysis DOES NOT   
+constitute a final medical diagnosis and should NOT be used for treatment     
+decisions without review and validation by a qualified, licensed radiologist 
+or physician.                                                                 
+                                                                              
+For emergency situations, please contact your healthcare provider immediately.
+                                                                              
+© 2025 MediscopeAI - AI-Powered Medical Imaging Platform                      
+════════════════════════════════════════════════════════════════════════════════
+        `;
+        
+        // Create PDF using browser print
+        const printWindow = window.open('', '_blank');
+        const htmlContent = '<!DOCTYPE html><html><head><title>MediscopeAI Diagnostic Report</title>' +
+          '<style>body{font-family:"Courier New",monospace;margin:40px;line-height:1.6;font-size:12px;}' +
+          'pre{white-space:pre-wrap;word-wrap:break-word;}@media print{body{margin:20px;}}</style>' +
+          '</head><body><pre>' + reportContent + '</pre>' +
+          '<scr' + 'ipt>window.onload=function(){window.print();setTimeout(function(){window.close();},100);}</scr' + 'ipt>' +
+          '</body></html>';
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        
+        console.log('✅ Detailed report downloaded successfully');
+      } catch (error) {
+        console.error('❌ Error downloading report:', error);
+        alert('Failed to download report. Please try again.');
+      }
+    }
+
+    // Initialize dashboard
+    loadDashboard();
+
+    // Profile modal management functions
+    function loadProfile() {
+      const profile = JSON.parse(localStorage.getItem('user_profile') || '{}');
+      
+      // Update card display
+      document.getElementById('card-display-name').textContent = profile.name || 'Not provided';
+      document.getElementById('card-display-phone').textContent = profile.phone || 'Not provided';
+      document.getElementById('card-display-address').textContent = profile.address || 'Not provided';
+      
+      // Update modal display
+      document.getElementById('modal-display-name').textContent = profile.name || 'Not provided';
+      document.getElementById('modal-display-phone').textContent = profile.phone || 'Not provided';
+      document.getElementById('modal-display-address').textContent = profile.address || 'Not provided';
+      
+      // Update modal form
+      document.getElementById('modal-profile-name').value = profile.name || '';
+      document.getElementById('modal-profile-phone').value = profile.phone || '';
+      document.getElementById('modal-profile-address').value = profile.address || '';
+    }
+
+    function openProfileModal() {
+      document.getElementById('profile-modal').classList.remove('hidden');
+      loadProfile(); // Refresh data when opening
+      document.body.style.overflow = 'hidden'; // Prevent background scroll
+    }
+
+    function closeProfileModal() {
+      document.getElementById('profile-modal').classList.add('hidden');
+      document.body.style.overflow = 'auto'; // Restore background scroll
+      // Reset to display mode
+      document.getElementById('modal-profile-display').classList.remove('hidden');
+      document.getElementById('modal-profile-edit').classList.add('hidden');
+    }
+
+    function toggleModalProfileEdit() {
+      const displayMode = document.getElementById('modal-profile-display');
+      const editMode = document.getElementById('modal-profile-edit');
+      
+      displayMode.classList.add('hidden');
+      editMode.classList.remove('hidden');
+    }
+
+    function cancelModalProfileEdit() {
+      loadProfile(); // Reset form values
+      document.getElementById('modal-profile-display').classList.remove('hidden');
+      document.getElementById('modal-profile-edit').classList.add('hidden');
+    }
+
+    // Handle modal profile form submission
+    document.getElementById('modal-profile-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      const profile = {
+        name: formData.get('name').trim(),
+        phone: formData.get('phone').trim(),
+        address: formData.get('address').trim()
+      };
+      
+      // Save to localStorage
+      localStorage.setItem('user_profile', JSON.stringify(profile));
+      
+      // Update display and switch to view mode
+      loadProfile();
+      document.getElementById('modal-profile-display').classList.remove('hidden');
+      document.getElementById('modal-profile-edit').classList.add('hidden');
+      
+      // Show success message briefly
+      const successMsg = document.createElement('div');
+      successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-60';
+      successMsg.innerHTML = '<i class="fas fa-check mr-2"></i>Profile updated successfully!';
+      document.body.appendChild(successMsg);
+      
+      setTimeout(() => {
+        successMsg.remove();
+      }, 3000);
+      
+      console.log('✅ Profile updated successfully');
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('profile-modal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeProfileModal();
+      }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && !document.getElementById('profile-modal').classList.contains('hidden')) {
+        closeProfileModal();
+      }
+    });
+
+    // Load profile on page load
+    loadProfile();
+  </script>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-gray-300 mt-16">
+    <div class="max-w-7xl mx-auto px-6 py-12">
+      <div class="grid md:grid-cols-4 gap-8">
+        <div>
+          <div class="flex items-center space-x-2 mb-4">
+            <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center">
+              <i class="fas fa-brain text-white"></i>
+            </div>
+            <span class="font-bold text-white">MediscopeAI</span>
+          </div>
+          <p class="text-sm text-gray-400">Advanced AI-powered medical imaging diagnostics platform.</p>
+        </div>
+        <div>
+          <h4 class="font-semibold text-white mb-4">Navigation</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="/" class="text-gray-400 hover:text-blue-400 transition">Home</a></li>
+            <li><a href="/#features" class="text-gray-400 hover:text-blue-400 transition">Features</a></li>
+            <li><a href="/#services" class="text-gray-400 hover:text-blue-400 transition">Services</a></li>
+            <li><a href="/analyze" class="text-gray-400 hover:text-blue-400 transition">Analyze</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold text-white mb-4">Tools</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="/dashboard" class="text-gray-400 hover:text-blue-400 transition">Dashboard</a></li>
+            <li><a href="/assistant" class="text-gray-400 hover:text-blue-400 transition">AI Assistant</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold text-white mb-4">Legal</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="#" class="text-gray-400 hover:text-blue-400 transition">Privacy Policy</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-blue-400 transition">Terms of Service</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-gray-800 mt-8 pt-6 text-center">
+        <p class="text-sm text-gray-500">&copy; 2025 MediscopeAI. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

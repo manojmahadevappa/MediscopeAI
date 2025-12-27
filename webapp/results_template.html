@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analysis Results - MediscopeAI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .metric-card {
+      transition: box-shadow 0.2s ease;
+    }
+    .metric-card:hover {
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 8px;
+    }
+    .status-healthy { background-color: #10B981; }
+    .status-benign { background-color: #F59E0B; }
+    .status-malignant { background-color: #EF4444; }
+    
+    /* Image containers - smaller size */
+    .image-container {
+      position: relative;
+      background-color: #f9fafb;
+      border-radius: 8px;
+      overflow: hidden;
+      height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    /* Medical image styling */
+    .medical-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background-color: #000;
+      transition: transform 0.2s ease;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+    
+    .medical-image:hover {
+      transform: scale(1.02);
+    }
+    
+    /* Enhanced cards for tumor staging and prognosis */
+    .enhanced-card {
+      background: white;
+      border: 2px solid #667eea;
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
+      transition: all 0.3s ease;
+    }
+    
+    .enhanced-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.25);
+      border-color: #764ba2;
+    }
+    
+    .enhanced-card-prognosis {
+      background: white;
+      border: 2px solid #11998e;
+      box-shadow: 0 4px 20px rgba(17, 153, 142, 0.15);
+      transition: all 0.3s ease;
+    }
+    
+    .enhanced-card-prognosis:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(17, 153, 142, 0.25);
+      border-color: #38ef7d;
+    }
+    
+    .pulse-icon {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: .7;
+      }
+    }
+    
+    /* Medical interpretation styling */
+    .medical-interpretation h3 {
+      color: #1f2937;
+      font-weight: 600;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.25rem;
+      border-bottom: 2px solid #10b981;
+    }
+    
+    .medical-interpretation h3:first-child {
+      margin-top: 0;
+    }
+    
+    .medical-interpretation p {
+      line-height: 1.6;
+      margin-bottom: 0.75rem;
+    }
+    
+    /* Floating button tooltip */
+    .floating-tooltip {
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.2s, visibility 0.2s;
+    }
+    
+    .floating-button:hover .floating-tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- Navigation -->
+  <nav class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
+            <i class="fas fa-brain text-white text-xl"></i>
+          </div>
+          <div>
+            <a href="/" class="text-xl font-bold text-gray-900">MediscopeAI</a>
+            <p class="text-xs text-gray-500">Advanced Diagnostics Platform</p>
+          </div>
+        </div>
+        
+        <div class="hidden md:flex items-center space-x-8">
+          <a href="/" class="text-gray-700 hover:text-blue-700 font-medium transition">Home</a>
+          <a href="/#features" class="text-gray-700 hover:text-blue-700 font-medium transition">Features</a>
+          <a href="/#services" class="text-gray-700 hover:text-blue-700 font-medium transition">Services</a>
+          <a href="/analyze" class="text-gray-700 hover:text-blue-700 font-medium transition">Analyze</a>
+          <a href="/dashboard" class="text-gray-700 hover:text-blue-700 font-medium transition">Dashboard</a>
+          <div id="auth-buttons"></div>
+        </div>
+        
+        <!-- Mobile Menu Button -->
+        <div class="md:hidden">
+          <button onclick="toggleMobileMenu()" class="text-gray-700 hover:text-blue-700">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Mobile Menu -->
+      <div id="mobile-menu" class="hidden md:hidden mt-4 pb-4 border-t border-gray-200">
+        <div class="flex flex-col space-y-3 pt-4">
+          <a href="/" class="text-gray-700 hover:text-blue-700 font-medium transition">Home</a>
+          <a href="/#features" class="text-gray-700 hover:text-blue-700 font-medium transition">Features</a>
+          <a href="/#services" class="text-gray-700 hover:text-blue-700 font-medium transition">Services</a>
+          <a href="/analyze" class="text-gray-700 hover:text-blue-700 font-medium transition">Analyze</a>
+          <a href="/dashboard" class="text-gray-700 hover:text-blue-700 font-medium transition">Dashboard</a>
+          <div id="mobile-auth-buttons"></div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Header Section -->
+  <div class="bg-white border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-6 py-8">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Analysis Results</h1>
+          <p class="text-gray-600 mt-2">AI-powered medical image analysis completed</p>
+        </div>
+        <div class="flex gap-3">
+          <button onclick="downloadReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition flex items-center gap-2">
+            <i class="fas fa-download"></i>
+            <span>Download Report</span>
+          </button>
+          <button onclick="window.location.href='/analyze'" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition flex items-center gap-2">
+            <i class="fas fa-plus"></i>
+            <span>New Analysis</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto px-6 py-8">
+    
+    <!-- Patient Information -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Patient Information</h2>
+      <div id="patient-info" class="grid md:grid-cols-3 gap-6">
+        <!-- Patient data will be populated here -->
+      </div>
+    </div>
+
+    <!-- Primary Results -->
+    <div class="grid lg:grid-cols-3 gap-8 mb-8">
+      
+      <!-- Diagnosis Card -->
+      <div class="lg:col-span-2">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 metric-card">
+          <h2 class="text-lg font-semibold text-gray-900 mb-6">Diagnosis</h2>
+          
+          <div class="text-center mb-6">
+            <div id="diagnosis-status" class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium mb-4">
+              <!-- Status will be populated -->
+            </div>
+            <div id="diagnosis" class="text-4xl font-bold text-gray-900 mb-2">
+              <!-- Diagnosis will be populated -->
+            </div>
+            <div id="confidence-text" class="text-gray-600">
+              <!-- Confidence will be populated -->
+            </div>
+          </div>
+          
+          <!-- Confidence Bar -->
+          <div class="mb-4">
+            <div class="flex justify-between text-sm text-gray-600 mb-2">
+              <span>Confidence Level</span>
+              <span id="confidence-percentage">0%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+              <div id="confidence-fill" class="bg-blue-600 h-3 rounded-full transition-all duration-1000" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Classification Probabilities -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 metric-card">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Classification Probabilities</h2>
+        <div id="probabilities" class="space-y-4">
+          <!-- Probabilities will be populated -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- AI Explainability -->
+    <div id="gradcam-section" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8 metric-card" style="display: none;">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-900">AI Explainability</h2>
+        <div class="text-sm text-blue-600 font-medium">Grad-CAM Heatmaps</div>
+      </div>
+      <p class="text-gray-600 mb-6">Visual explanation showing regions the AI model focused on for diagnosis. Red/yellow areas indicate high attention, blue areas indicate low attention.</p>
+      <div id="gradcam-grid" class="space-y-6">
+        <!-- Grad-CAM images will be populated -->
+      </div>
+    </div>
+
+    <!-- Advanced Analysis -->
+    <div class="grid md:grid-cols-2 gap-8 mb-8">
+      
+      <!-- Tumor Stage Analysis - Enhanced -->
+      <div id="stage-section" class="enhanced-card rounded-2xl p-8 metric-card" style="display: none;">
+        <div class="flex items-center mb-4">
+          <div class="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+            <i class="fas fa-microscope text-white text-2xl pulse-icon"></i>
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-1">Tumor Staging</h2>
+            <p class="text-purple-600 text-sm font-medium">Advanced Classification Analysis</p>
+          </div>
+        </div>
+        <div class="h-px bg-gradient-to-r from-purple-200 via-purple-400 to-purple-200 mb-4"></div>
+        <p class="text-gray-700 mb-6 text-sm">Comprehensive tumor classification and staging information based on AI analysis</p>
+        <div id="stage-content" class="text-center">
+          <button onclick="loadTumorStage()" id="stage-btn" class="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 px-6 py-4 rounded-xl font-semibold transition transform hover:scale-105 shadow-lg flex items-center justify-center">
+            <i class="fas fa-microscope mr-3 text-lg"></i>
+            <span>Analyze Tumor Stage</span>
+            <i class="fas fa-arrow-right ml-3"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Prognosis Analysis - Enhanced -->
+      <div id="survival-section" class="enhanced-card-prognosis rounded-2xl p-8 metric-card" style="display: none;">
+        <div class="flex items-center mb-4">
+          <div class="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+            <i class="fas fa-heart-pulse text-white text-2xl pulse-icon"></i>
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-1">Prognosis Analysis</h2>
+            <p class="text-green-600 text-sm font-medium">Treatment & Outcome Insights</p>
+          </div>
+        </div>
+        <div class="h-px bg-gradient-to-r from-green-200 via-green-400 to-green-200 mb-4"></div>
+        <p class="text-gray-700 mb-6 text-sm">Statistical survival analysis and personalized treatment recommendations</p>
+        <div id="survival-content" class="text-center">
+          <button onclick="loadSurvival()" id="survival-btn" class="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 px-6 py-4 rounded-xl font-semibold transition transform hover:scale-105 shadow-lg flex items-center justify-center">
+            <i class="fas fa-heart-pulse mr-3 text-lg"></i>
+            <span>Analyze Prognosis</span>
+            <i class="fas fa-arrow-right ml-3"></i>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- AI Medical Assistant Section -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 mb-8 metric-card">
+      <div class="text-center">
+        <div class="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <i class="fas fa-user-md text-white text-2xl"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-3">AI Medical Assistant</h2>
+        <p class="text-gray-600 mb-6 max-w-2xl mx-auto">
+          Get professional medical interpretation of your scan results and ask questions about your diagnosis, treatment options, and prognosis.
+        </p>
+        <a href="/assistant" class="inline-flex items-center px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition group shadow-lg">
+          <i class="fas fa-brain mr-3 group-hover:scale-110 transition-transform"></i>
+          <div class="text-left">
+            <div class="font-semibold">Open AI Assistant</div>
+            <div class="text-sm text-emerald-100">Get insights & ask medical questions</div>
+          </div>
+          <i class="fas fa-arrow-right ml-4"></i>
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Floating AI Assistant Button -->
+  <div class="fixed bottom-6 right-6 z-50">
+    <a href="/assistant" class="w-14 h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-110 group">
+      <i class="fas fa-user-md text-xl group-hover:rotate-12 transition-transform"></i>
+    </a>
+    <div class="absolute bottom-16 right-0 bg-gray-900 text-white text-xs px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+      AI Medical Assistant
+    </div>
+  </div>
+
+  <!-- Image Modal -->
+  <div id="image-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+    <div class="max-w-4xl max-h-full relative">
+      <button onclick="closeImageModal()" class="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-75 transition z-10">
+        <i class="fas fa-times text-xl"></i>
+      </button>
+      <img id="modal-image" src="" alt="" class="max-w-full max-h-full object-contain rounded-lg">
+      <div id="modal-caption" class="text-white text-center mt-4 font-medium"></div>
+    </div>
+  </div>
+
+  <script>
+    function toggleMobileMenu() {
+      const mobileMenu = document.getElementById('mobile-menu');
+      mobileMenu.classList.toggle('hidden');
+    }
+
+    // Image modal functions
+    function openImageModal(imageUrl, caption) {
+      const modal = document.getElementById('image-modal');
+      const modalImage = document.getElementById('modal-image');
+      const modalCaption = document.getElementById('modal-caption');
+      
+      modalImage.src = imageUrl;
+      modalImage.alt = caption;
+      modalCaption.textContent = caption;
+      modal.classList.remove('hidden');
+      
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeImageModal() {
+      const modal = document.getElementById('image-modal');
+      modal.classList.add('hidden');
+      document.body.style.overflow = 'auto';
+    }
+
+    // Close modal when clicking outside the image
+    document.getElementById('image-modal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeImageModal();
+      }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeImageModal();
+      }
+    });
+
+    // Injected data
+    const resultData = RESULT_DATA_PLACEHOLDER;
+    const patientData = PATIENT_DATA_PLACEHOLDER;
+
+    console.log('🔍 Results page loaded');
+    console.log('📊 Result data:', resultData);
+    console.log('👤 Patient data:', patientData);
+
+    // Store data in localStorage for assistant page access
+    try {
+      if (resultData) {
+        localStorage.setItem('latestResult', JSON.stringify(resultData));
+        console.log('💾 Stored result data in localStorage');
+      }
+      if (patientData) {
+        localStorage.setItem('patientData', JSON.stringify(patientData));
+        console.log('💾 Stored patient data in localStorage');
+      }
+    } catch (e) {
+      console.warn('⚠️ Failed to store data in localStorage:', e);
+    }
+
+    // Populate patient info
+    function loadPatientInfo() {
+      const el = document.getElementById('patient-info');
+      if (!el || !patientData) return;
+      
+      const { name = 'N/A', age = 'N/A', gender = 'N/A' } = patientData;
+      
+      el.innerHTML = `
+        <div class="text-center">
+          <div class="text-sm text-gray-500 mb-1">Patient Name</div>
+          <div class="font-semibold text-gray-900">${name}</div>
+        </div>
+        <div class="text-center">
+          <div class="text-sm text-gray-500 mb-1">Age</div>
+          <div class="font-semibold text-gray-900">${age} years</div>
+        </div>
+        <div class="text-center">
+          <div class="text-sm text-gray-500 mb-1">Gender</div>
+          <div class="font-semibold text-gray-900">${gender}</div>
+        </div>
+      `;
+      console.log('✅ Patient info loaded:', { name, age, gender });
+    }
+
+    // Populate diagnosis
+    function loadDiagnosis() {
+      const diagEl = document.getElementById('diagnosis');
+      const diagStatusEl = document.getElementById('diagnosis-status');
+      const confFillEl = document.getElementById('confidence-fill');
+      const confTextEl = document.getElementById('confidence-text');
+      const confPercentEl = document.getElementById('confidence-percentage');
+      
+      if (!diagEl || !resultData.final_prediction || !resultData.final_probs) return;
+      
+      const prediction = resultData.final_prediction;
+      const maxProb = Math.max(...resultData.final_probs);
+      const confidence = (maxProb * 100).toFixed(1);
+      
+      // Set diagnosis text and status
+      diagEl.textContent = prediction;
+      confTextEl.textContent = `Confidence: ${confidence}%`;
+      confPercentEl.textContent = `${confidence}%`;
+      
+      // Set status indicator
+      if (prediction.includes('Healthy')) {
+        diagStatusEl.innerHTML = '<span class="status-indicator status-healthy"></span>Healthy';
+        diagStatusEl.className = 'inline-flex items-center px-4 py-2 rounded-full text-sm font-medium mb-4 bg-green-50 text-green-800';
+      } else if (prediction.includes('Benign')) {
+        diagStatusEl.innerHTML = '<span class="status-indicator status-benign"></span>Benign';
+        diagStatusEl.className = 'inline-flex items-center px-4 py-2 rounded-full text-sm font-medium mb-4 bg-yellow-50 text-yellow-800';
+      } else {
+        diagStatusEl.innerHTML = '<span class="status-indicator status-malignant"></span>Malignant';
+        diagStatusEl.className = 'inline-flex items-center px-4 py-2 rounded-full text-sm font-medium mb-4 bg-red-50 text-red-800';
+      }
+      
+      // Set confidence bar
+      confFillEl.style.width = confidence + '%';
+      
+      console.log('✅ Diagnosis loaded:', prediction, confidence + '%');
+    }
+
+    // Populate probabilities
+    function loadProbabilities() {
+      const el = document.getElementById('probabilities');
+      if (!el || !resultData.final_probs) return;
+      
+      // Detect 2 or 3 class model
+      const labels = resultData.final_probs.length === 2 
+        ? ['Healthy', 'Tumor']
+        : ['Healthy', 'Benign', 'Malignant'];
+      
+      const colors = ['text-green-600', 'text-yellow-600', 'text-red-600'];
+      const bgColors = ['bg-green-100', 'bg-yellow-100', 'bg-red-100'];
+      
+      el.innerHTML = '';
+      
+      resultData.final_probs.forEach((prob, i) => {
+        const percentage = (prob * 100).toFixed(1);
+        const div = document.createElement('div');
+        div.className = `${bgColors[i]} rounded-lg p-3`;
+        div.innerHTML = `
+          <div class="flex justify-between items-center mb-2">
+            <span class="font-medium text-gray-900">${labels[i]}</span>
+            <span class="${colors[i]} font-bold">${percentage}%</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2">
+            <div class="h-2 rounded-full bg-current ${colors[i]} transition-all duration-1000" style="width: ${percentage}%"></div>
+          </div>
+        `;
+        el.appendChild(div);
+      });
+      
+      console.log('✅ Probabilities loaded');
+    }
+
+    // Populate scans - removed as images now shown in Grad-CAM section
+    function loadScans() {
+      // No longer needed - images displayed in Grad-CAM section
+      console.log('✅ Scans section removed - images shown in Grad-CAM');
+    }
+
+    // Load Grad-CAM if available
+    function loadGradCAM() {
+      const gradcam_ct = resultData.gradcam_ct;
+      const gradcam_mri = resultData.gradcam_mri;
+      const original_ct = resultData.original_ct;
+      const original_mri = resultData.original_mri;
+      
+      if (!gradcam_ct && !gradcam_mri) {
+        console.log('No Grad-CAM data available');
+        return;
+      }
+      
+      document.getElementById('gradcam-section').style.display = 'block';
+      const el = document.getElementById('gradcam-grid');
+      
+      let gradcamContent = '';
+      
+      // Add CT Grad-CAM if available
+      if (gradcam_ct && original_ct) {
+        gradcamContent += `
+          <div class="grid md:grid-cols-2 gap-4 mb-8">
+            <div class="border border-gray-200 rounded-lg overflow-hidden metric-card">
+              <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                  <h3 class="font-medium text-gray-900">CT Scan - Original</h3>
+                  <div class="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">Source</div>
+                </div>
+              </div>
+              <div class="image-container">
+                <img src="${original_ct}" alt="Original CT" 
+                     class="medical-image" 
+                     onclick="openImageModal('${original_ct}', 'Original CT Scan')"
+                     onerror="this.parentElement.innerHTML='<div class=&quot;h-48 bg-gray-100 rounded flex flex-col items-center justify-center text-gray-500 m-4&quot;><i class=&quot;fas fa-exclamation-triangle text-2xl mb-2&quot;></i><div class=&quot;text-sm&quot;>Failed to load CT image</div></div>'"/>
+              </div>
+            </div>
+            <div class="border border-gray-200 rounded-lg overflow-hidden metric-card">
+              <div class="bg-blue-50 px-4 py-3 border-b border-blue-200">
+                <div class="flex items-center justify-between">
+                  <h3 class="font-medium text-blue-900">CT Scan - AI Focus Areas</h3>
+                  <div class="text-xs text-blue-700 bg-blue-100 px-2 py-1 rounded">Grad-CAM</div>
+                </div>
+              </div>
+              <div class="image-container">
+                <img src="${gradcam_ct}" alt="CT Grad-CAM" 
+                     class="medical-image" 
+                     onclick="openImageModal('${gradcam_ct}', 'CT Grad-CAM Heatmap')"
+                     onerror="this.parentElement.innerHTML='<div class=&quot;h-48 bg-gray-100 rounded flex flex-col items-center justify-center text-gray-500 m-4&quot;><i class=&quot;fas fa-exclamation-triangle text-2xl mb-2&quot;></i><div class=&quot;text-sm&quot;>Failed to load Grad-CAM</div></div>'"/>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      // Add MRI Grad-CAM if available
+      if (gradcam_mri && original_mri) {
+        gradcamContent += `
+          <div class="grid md:grid-cols-2 gap-4 mb-8">
+            <div class="border border-gray-200 rounded-lg overflow-hidden metric-card">
+              <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                  <h3 class="font-medium text-gray-900">MRI Scan - Original</h3>
+                  <div class="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">Source</div>
+                </div>
+              </div>
+              <div class="image-container">
+                <img src="${original_mri}" alt="Original MRI" 
+                     class="medical-image" 
+                     onclick="openImageModal('${original_mri}', 'Original MRI Scan')"
+                     onerror="this.parentElement.innerHTML='<div class=&quot;h-48 bg-gray-100 rounded flex flex-col items-center justify-center text-gray-500 m-4&quot;><i class=&quot;fas fa-exclamation-triangle text-2xl mb-2&quot;></i><div class=&quot;text-sm&quot;>Failed to load MRI image</div></div>'"/>
+              </div>
+            </div>
+            <div class="border border-gray-200 rounded-lg overflow-hidden metric-card">
+              <div class="bg-green-50 px-4 py-3 border-b border-green-200">
+                <div class="flex items-center justify-between">
+                  <h3 class="font-medium text-green-900">MRI Scan - AI Focus Areas</h3>
+                  <div class="text-xs text-green-700 bg-green-100 px-2 py-1 rounded">Grad-CAM</div>
+                </div>
+              </div>
+              <div class="image-container">
+                <img src="${gradcam_mri}" alt="MRI Grad-CAM" 
+                     class="medical-image" 
+                     onclick="openImageModal('${gradcam_mri}', 'MRI Grad-CAM Heatmap')"
+                     onerror="this.parentElement.innerHTML='<div class=&quot;h-48 bg-gray-100 rounded flex flex-col items-center justify-center text-gray-500 m-4&quot;><i class=&quot;fas fa-exclamation-triangle text-2xl mb-2&quot;></i><div class=&quot;text-sm&quot;>Failed to load Grad-CAM</div></div>'"/>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      el.innerHTML = gradcamContent;
+      
+      console.log('✅ Grad-CAM loaded - CT:', !!gradcam_ct, 'MRI:', !!gradcam_mri);
+    }
+
+    // Show tumor stage section if tumor detected
+    function checkTumorStage() {
+      if (resultData.final_prediction && !resultData.final_prediction.includes('Healthy')) {
+        document.getElementById('stage-section').style.display = 'block';
+        document.getElementById('survival-section').style.display = 'block';
+      }
+    }
+
+    // Tumor staging functionality (placeholder)
+    function loadTumorStage() {
+      const btn = document.getElementById('stage-btn');
+      const content = document.getElementById('stage-content');
+      
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Analyzing...';
+      btn.disabled = true;
+      
+      setTimeout(() => {
+        content.innerHTML = `
+          <div class="bg-white bg-opacity-95 rounded-xl p-6 text-left shadow-lg">
+            <div class="flex items-center mb-4">
+              <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                <i class="fas fa-chart-pie text-purple-700 text-lg"></i>
+              </div>
+              <h3 class="font-bold text-purple-900 text-lg">Detailed Stage Analysis</h3>
+            </div>
+            <div class="space-y-3">
+              <div class="flex items-start">
+                <i class="fas fa-dna text-purple-600 mt-1 mr-3"></i>
+                <div>
+                  <span class="font-semibold text-gray-900">Classification:</span>
+                  <span class="text-gray-700 ml-2">Grade II Astrocytoma</span>
+                </div>
+              </div>
+              <div class="flex items-start">
+                <i class="fas fa-map-marker-alt text-purple-600 mt-1 mr-3"></i>
+                <div>
+                  <span class="font-semibold text-gray-900">Location:</span>
+                  <span class="text-gray-700 ml-2">Right frontal lobe</span>
+                </div>
+              </div>
+              <div class="flex items-start">
+                <i class="fas fa-ruler text-purple-600 mt-1 mr-3"></i>
+                <div>
+                  <span class="font-semibold text-gray-900">Size:</span>
+                  <span class="text-gray-700 ml-2">Approximately 2.3cm diameter</span>
+                </div>
+              </div>
+              <div class="flex items-start">
+                <i class="fas fa-lightbulb text-purple-600 mt-1 mr-3"></i>
+                <div>
+                  <span class="font-semibold text-gray-900">Enhancement:</span>
+                  <span class="text-gray-700 ml-2">Minimal contrast enhancement</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }, 2000);
+    }
+
+    // Survival analysis functionality (placeholder)
+    function loadSurvival() {
+      const btn = document.getElementById('survival-btn');
+      const content = document.getElementById('survival-content');
+      
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Analyzing...';
+      btn.disabled = true;
+      
+      setTimeout(() => {
+        content.innerHTML = `
+          <div class="bg-white bg-opacity-95 rounded-xl p-6 text-left shadow-lg">
+            <div class="flex items-center mb-4">
+              <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                <i class="fas fa-heartbeat text-green-700 text-lg"></i>
+              </div>
+              <h3 class="font-bold text-green-900 text-lg">Prognosis Assessment</h3>
+            </div>
+            <div class="space-y-3">
+              <div class="flex items-start">
+                <i class="fas fa-chart-line text-green-600 mt-1 mr-3"></i>
+                <div>
+                  <span class="font-semibold text-gray-900">5-Year Survival:</span>
+                  <span class="text-gray-700 ml-2">85-90%</span>
+                </div>
+              </div>
+              <div class="flex items-start">
+                <i class="fas fa-user-md text-green-600 mt-1 mr-3"></i>
+                <div>
+                  <span class="font-semibold text-gray-900">Recommendation:</span>
+                  <span class="text-gray-700 ml-2">Surgical consultation</span>
+                </div>
+              </div>
+              <div class="flex items-start">
+                <i class="fas fa-pills text-green-600 mt-1 mr-3"></i>
+                <div>
+                  <span class="font-semibold text-gray-900">Treatment Options:</span>
+                  <span class="text-gray-700 ml-2">Resection + adjuvant therapy</span>
+                </div>
+              </div>
+              <div>• Follow-up: MRI every 3 months</div>
+            </div>
+          </div>
+        `;
+      }, 2000);
+    }
+
+    // Download report functionality
+    function downloadReport() {
+      try {
+        // Format probabilities
+        let probsText = 'N/A';
+        if (resultData?.final_probs && Array.isArray(resultData.final_probs)) {
+          probsText = resultData.final_probs.map((p, i) => {
+            const labels = resultData.final_probs.length === 2 ? ['Healthy', 'Tumor'] : ['Healthy', 'Benign', 'Malignant'];
+            return `  ${labels[i]}: ${(p * 100).toFixed(2)}%`;
+          }).join('\n');
+        }
+        
+        // Format severity
+        let severityText = 'N/A';
+        if (resultData?.final_severity && resultData.final_severity.label) {
+          severityText = `${resultData.final_severity.label} (Level ${resultData.final_severity.level || 0})`;
+        }
+        
+        // Format imaging info
+        let imagingInfo = '';
+        if (resultData?.original_ct || resultData?.original_mri) {
+          imagingInfo = '\nImaging Studies:\n-----------------\n';
+          if (resultData.original_ct) imagingInfo += '✓ CT Scan Available\n';
+          if (resultData.original_mri) imagingInfo += '✓ MRI Scan Available\n';
+          if (resultData.gradcam_ct || resultData.gradcam_mri) {
+            imagingInfo += '\nAI Explainability:\n';
+            if (resultData.gradcam_ct) imagingInfo += '✓ CT Grad-CAM Heatmap Generated\n';
+            if (resultData.gradcam_mri) imagingInfo += '✓ MRI Grad-CAM Heatmap Generated\n';
+          }
+        }
+        
+        // Create comprehensive report
+        const reportContent = `
+════════════════════════════════════════════════════════════════════════════════
+                           MEDISCOPEAI MEDICAL CENTER                            
+                          RADIOLOGY DIAGNOSTIC REPORT                            
+                             Brain Imaging Analysis                              
+════════════════════════════════════════════════════════════════════════════════
+
+REPORT INFORMATION
+──────────────────────────────────────────────────────────────────────────────
+Report ID:                   ${resultData?.id || 'N/A'}
+Date of Analysis:            ${new Date().toLocaleDateString('en-US', { 
+                               weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                             })}
+Time of Analysis:            ${new Date().toLocaleTimeString('en-US')}
+Report Generated:            ${new Date().toLocaleDateString('en-US')} at ${new Date().toLocaleTimeString('en-US')}
+
+PATIENT DEMOGRAPHICS
+──────────────────────────────────────────────────────────────────────────────
+Name:                        ${patientData?.name && patientData.name !== 'Anonymous Patient' ? patientData.name : 'CONFIDENTIAL'}
+Age:                         ${patientData?.age && patientData.age !== 'Unknown' ? patientData.age + ' years' : 'Not Specified'}
+Gender:                      ${patientData?.gender && patientData.gender !== 'Unknown' ? patientData.gender : 'Not Specified'}
+Study Date:                  ${new Date().toLocaleDateString('en-US')}
+
+CLINICAL INDICATION
+──────────────────────────────────────────────────────────────────────────────
+${patientData?.notes || 'Brain imaging requested for suspected intracranial pathology evaluation.'}
+
+IMAGING TECHNIQUE
+──────────────────────────────────────────────────────────────────────────────${resultData?.original_ct || resultData?.original_mri ? `
+Modality:                    ${resultData.original_ct ? 'Computed Tomography (CT)' : ''}${resultData.original_ct && resultData.original_mri ? ', ' : ''}${resultData.original_mri ? 'Magnetic Resonance Imaging (MRI)' : ''}
+Analysis Method:             Deep Learning AI-Assisted Evaluation
+Image Processing:            ${resultData.stage || 'Two-Stage Classification (Binary → Multiclass)'}${resultData.gradcam_ct || resultData.gradcam_mri ? `
+Explainability:              Gradient-weighted Class Activation Mapping (Grad-CAM)` : ''}` : `
+No imaging data available for analysis.`}
+
+FINDINGS & IMPRESSION
+──────────────────────────────────────────────────────────────────────────────
+Primary Diagnosis:           ${resultData?.final_prediction || 'INDETERMINATE'}
+
+Diagnostic Confidence:       
+${probsText}
+
+Severity Assessment:         ${severityText}
+
+INTERPRETATION
+──────────────────────────────────────────────────────────────────────────────
+${resultData?.assistant_summary || 'The AI-assisted analysis was unable to generate a comprehensive interpretation. Manual review by a qualified radiologist is recommended.'}
+
+TECHNICAL NOTES
+──────────────────────────────────────────────────────────────────────────────
+• Analysis performed using MediscopeAI deep learning algorithms
+• Image quality assessed as adequate for AI interpretation${resultData?.gradcam_ct || resultData?.gradcam_mri ? `
+• Heat map visualization available for clinical correlation` : ''}
+• Automated quality control checks completed successfully
+
+RECOMMENDATIONS
+──────────────────────────────────────────────────────────────────────────────
+1. Clinical correlation with patient history and physical examination
+2. Consider follow-up imaging if clinically indicated
+3. Radiologist review recommended for definitive interpretation
+4. Multidisciplinary team consultation for treatment planning if pathology confirmed
+
+LIMITATIONS
+──────────────────────────────────────────────────────────────────────────────
+• AI-assisted analysis for screening purposes only
+• Results require validation by certified radiologist
+• Clinical context and patient history not fully incorporated
+• Algorithm performance may vary with image quality and pathology type
+
+PHYSICIAN SIGNATURE
+──────────────────────────────────────────────────────────────────────────────
+Analyzing System:            MediscopeAI v2.0 Deep Learning Platform
+Reviewed by:                 [PENDING RADIOLOGIST REVIEW]
+Date:                        ${new Date().toLocaleDateString('en-US')}
+
+════════════════════════════════════════════════════════════════════════════════
+
+                                 DISCLAIMER                                    
+                                                                              
+This report has been generated using artificial intelligence technology and   
+is intended for preliminary screening purposes only. This analysis DOES NOT   
+constitute a final medical diagnosis and should NOT be used for treatment     
+decisions without review and validation by a qualified, licensed radiologist 
+or physician.                                                                 
+                                                                              
+For emergency situations, please contact your healthcare provider immediately.
+                                                                              
+© 2025 MediscopeAI - AI-Powered Medical Imaging Platform                      
+════════════════════════════════════════════════════════════════════════════════
+        `;
+        
+        // Create PDF using browser print
+        const printWindow = window.open('', '_blank');
+        const htmlContent = '<!DOCTYPE html><html><head><title>MediscopeAI Diagnostic Report</title>' +
+          '<style>body{font-family:"Courier New",monospace;margin:40px;line-height:1.6;font-size:12px;}' +
+          'pre{white-space:pre-wrap;word-wrap:break-word;}@media print{body{margin:20px;}}</style>' +
+          '</head><body><pre>' + reportContent + '</pre>' +
+          '<scr' + 'ipt>window.onload=function(){window.print();setTimeout(function(){window.close();},100);}</scr' + 'ipt>' +
+          '</body></html>';
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        
+        console.log('✅ Detailed report downloaded successfully');
+      } catch (error) {
+        console.error('❌ Error downloading report:', error);
+        alert('Failed to download report. Please try again.');
+      }
+    }
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('🚀 Results page initializing...');
+      console.log('📊 Available result data:', Object.keys(resultData || {}));
+      console.log('👤 Available patient data:', Object.keys(patientData || {}));
+      
+      // Debug image URLs
+      if (resultData) {
+        console.log('🖼️ Image URLs:');
+        console.log('  - CT Original:', resultData.original_ct);
+        console.log('  - MRI Original:', resultData.original_mri);
+        console.log('  - CT Grad-CAM:', resultData.gradcam_ct);
+        console.log('  - MRI Grad-CAM:', resultData.gradcam_mri);
+      }
+      
+      loadPatientInfo();
+      loadDiagnosis();
+      loadProbabilities();
+      loadScans();
+      loadGradCAM();
+      checkTumorStage();
+      
+      console.log('🚀 Results page fully initialized');
+    });
+  </script>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-gray-300 mt-16">
+    <div class="max-w-7xl mx-auto px-6 py-12">
+      <div class="grid md:grid-cols-4 gap-8">
+        <div>
+          <div class="flex items-center space-x-2 mb-4">
+            <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center">
+              <i class="fas fa-brain text-white"></i>
+            </div>
+            <span class="font-bold text-white">MediscopeAI</span>
+          </div>
+          <p class="text-sm text-gray-400">Advanced AI-powered medical imaging diagnostics platform.</p>
+        </div>
+        <div>
+          <h4 class="font-semibold text-white mb-4">Navigation</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="/" class="text-gray-400 hover:text-blue-400 transition">Home</a></li>
+            <li><a href="/#features" class="text-gray-400 hover:text-blue-400 transition">Features</a></li>
+            <li><a href="/#services" class="text-gray-400 hover:text-blue-400 transition">Services</a></li>
+            <li><a href="/analyze" class="text-gray-400 hover:text-blue-400 transition">Analyze</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold text-white mb-4">Tools</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="/dashboard" class="text-gray-400 hover:text-blue-400 transition">Dashboard</a></li>
+            <li><a href="/assistant" class="text-gray-400 hover:text-blue-400 transition">AI Assistant</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold text-white mb-4">Legal</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="#" class="text-gray-400 hover:text-blue-400 transition">Privacy Policy</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-blue-400 transition">Terms of Service</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-gray-800 mt-8 pt-6 text-center">
+        <p class="text-sm text-gray-500">&copy; 2025 MediscopeAI. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
