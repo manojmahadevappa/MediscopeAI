@@ -12,12 +12,16 @@ pydicom
 SimpleITK
 scikit-image
 lifelines
-opencv-python
+opencv-python-headless
 fastapi
 uvicorn[standard]
 jinja2
 python-multipart
+python-dotenv
 groq
 shap
 captum
 pytest
+firebase-admin
+google-cloud-firestore
+Pillow
