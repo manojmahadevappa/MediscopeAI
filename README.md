@@ -758,8 +758,6 @@ For issues, questions, or contributions:
 
 - **GitHub Issues**: [Report a bug](https://github.com/manojmahadevappa/Brain-Tumer-AI/issues)
 - **Email**: manojmahadevappam@gmail.com
-- **Documentation**: [Full docs](https://docs.mediscopeai.example.com)
-
 ---
 
 ## 🗺️ Roadmap
@@ -774,8 +772,5 @@ For issues, questions, or contributions:
 - [ ] Integration with PACS systems
 - [ ] Federated learning for privacy-preserving training
 
----
-
-**Made with ❤️ for advancing medical AI research**
 
 *Last Updated: November 23, 2025*
