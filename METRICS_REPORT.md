@@ -6,12 +6,21 @@ This document provides comprehensive performance metrics for the AI-powered brai
 
 ## 1. Binary Tumor Detection Model (CT)
 
-**Architecture:** ResNet-50 (Transfer Learning)
+**Architecture:** ResNet-50 (Transfer Learning from ImageNet1K_V2)
+
+**Training Configuration:**
+- Transfer Learning: ImageNet pretrained weights
+- Fine-tuning: Last 20 layers trainable
+- Optimizer: Adam (lr=0.0001)
+- Scheduler: ReduceLROnPlateau (patience=10, factor=0.5)
+- Early Stopping: Patience of 15 epochs
+- Data Augmentation: RandomCrop, Flip, Rotation, ColorJitter
 
 **Dataset Size:**
-- Training: 2847
-- Validation: 712
-- Test: 356
+- Total Images: 4,618 (2,300 Healthy + 2,318 Tumor)
+- Training: 3,694 (80%)
+- Validation: 924 (20%)
+- Split Method: random_split with seed=42
 
 ### Performance Metrics
 
@@ -34,7 +43,22 @@ This document provides comprehensive performance metrics for the AI-powered brai
 
 ## 2. Multiclass Tumor Classification Model (MRI)
 
-**Architecture:** Dual-Encoder ResNet-50 (Multimodal)
+**Architecture:** ResNet-50 (Transfer Learning from ImageNet1K_V2)
+
+**Training Configuration:**
+- Transfer Learning: ImageNet pretrained weights
+- Fine-tuning: Last 20 layers trainable
+- Optimizer: Adam (lr=0.0001)
+- Scheduler: ReduceLROnPlateau (patience=10, factor=0.5)
+- Early Stopping: Patience of 15 epochs
+- Data Augmentation: RandomCrop, Flip, Rotation, ColorJitter
+- Dropout: 0.3 in classifier head
+
+**Dataset Size:**
+- Total Images: 5,000 (2,000 Healthy + 3,000 Tumor)
+- Training: 4,000 (80%)
+- Validation: 1,000 (20%)
+- Split Method: random_split with seed=42
 
 **Classes:** Healthy, Benign, Malignant
 

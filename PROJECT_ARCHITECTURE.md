@@ -27,11 +27,13 @@ Traditional manual analysis is time-consuming and requires specialist expertise.
 - **Technology**: Python FastAPI, Uvicorn server
 - **Function**: Orchestrates all AI processing and business logic
 - **Components**:
+  - Service Initialization Layer (`init_services.py`): Centralized Firebase & Groq initialization with error handling
   - Authentication endpoints (login/signup via Firebase)
-  - Image prediction pipeline
+  - Image prediction pipeline with ResNet50 models
   - Grad-CAM explainability generation
   - LLM integration (Groq API) for medical summaries
   - Dashboard and analytics APIs
+- **Key Design**: Graceful degradation when services unavailable (Firebase/Groq optional)
 
 ### **Tier 3: Data Layer (Firebase Firestore)**
 - **Technology**: NoSQL cloud database
@@ -41,6 +43,65 @@ Traditional manual analysis is time-consuming and requires specialist expertise.
   - Analysis results (predictions, probabilities, images)
   - Chat conversation history
   - Dashboard analytics
+
+---
+
+## **Service Initialization Architecture (`init_services.py`)**
+
+MediscopeAI uses a centralized service initialization pattern to manage external dependencies with graceful degradation:
+
+### **Design Pattern: Startup Event Handlers**
+```python
+# Centralized initialization in init_services.py
+def init_firebase():
+    """Initialize Firebase with error handling"""
+    - Checks FIREBASE_CREDENTIALS environment variable
+    - Loads service account JSON
+    - Initializes Firebase Admin SDK
+    - Creates Firestore client
+    - Gracefully handles missing credentials
+    
+def init_groq():
+    """Initialize Groq LLM client"""
+    - Checks GROQ_API_KEY environment variable
+    - Creates Groq client instance
+    - Handles missing API key gracefully
+    
+def register_startup(app: FastAPI):
+    """Register startup event handlers"""
+    @app.on_event("startup")
+    def _startup():
+        init_firebase()
+        init_groq()
+```
+
+### **Benefits of This Architecture**
+✅ **Graceful Degradation**: App starts even if Firebase/Groq unavailable  
+✅ **Centralized Configuration**: Single source of truth for service initialization  
+✅ **Clear Error Messages**: Distinguishes between missing config vs. connection issues  
+✅ **Development Friendly**: Can develop without all services configured  
+✅ **Production Ready**: Environment variable based configuration  
+✅ **Testability**: Easy to mock services for testing  
+
+### **Usage in Application**
+```python
+# In webapp/app.py
+from webapp.init_services import (
+    register_startup,      # Startup event registration
+    firebase_admin,        # Firebase Admin SDK (or None)
+    firestore_client,      # Firestore client (or None)
+    groq_client           # Groq LLM client (or None)
+)
+
+app = FastAPI(title="MediscopeAI")
+register_startup(app)  # Initialize services on startup
+
+# Use services with None checks
+if firestore_client:
+    firestore_client.collection('users').add(data)
+if groq_client:
+    response = groq_client.chat.completions.create(...)
+```
 
 ---
 
@@ -56,18 +117,21 @@ User uploads CT/MRI scan → Server receives image files + patient metadata
 The system uses a **two-stage classification approach**:
 
 **Stage 1 - Binary Detection (CT scans):**
-- Model: ResNet-18 architecture (transfer learning from ImageNet)
+- Model: ResNet-50 architecture (transfer learning from ImageNet1K_V2)
 - Purpose: Detect presence of tumor (Healthy vs. Tumor)
-- Trained on: 3,915 CT scan images
-- Performance: **97.5% accuracy**
+- Training: 4,618 images (80/20 split: 3,694 train / 924 validation)
+- Fine-tuning: Last 20 layers trainable, early layers frozen
+- Data Augmentation: RandomCrop, Flip, Rotation(±15°), ColorJitter
+- Performance: **Target 97.5% accuracy** (retraining in progress)
 
 **Stage 2 - Multiclass Classification (MRI scans):**
-- Model: Dual-Encoder Multimodal Network
-  - Separate ResNet-18 encoders for CT and MRI
-  - Fusion layer concatenates features from both modalities
-  - Classification head outputs 3 classes: Healthy, Benign, Malignant
-- Trained on: 4,842 MRI scan images
-- Performance: **96.1% accuracy**
+- Model: ResNet-50 architecture (transfer learning from ImageNet1K_V2)
+- Purpose: Classify tumor type (Healthy, Benign, Malignant)
+- Training: 5,000 images (80/20 split: 4,000 train / 1,000 validation)
+- Fine-tuning: Last 20 layers trainable, early layers frozen
+- Classifier: 512 hidden units + Dropout(0.3) for regularization
+- Data Augmentation: RandomCrop, Flip, Rotation(±15°), ColorJitter
+- Performance: **Target 96.1% accuracy** (retraining in progress)
 
 ### **Step 3: Image Preprocessing**
 ```python
@@ -359,21 +423,74 @@ Stored Document Structure:
 ### **Error Handling**
 - Graceful model loading failures with helpful error messages
 - Input validation for image formats
-- Authentication error handling
+- **Smart Authentication Error Handling**:
+  - Returns 401 with JSON error message (not HTML redirects)
+  - Frontend intercepts 401 and shows beautiful modal popup
+  - Modal displays authentication message with smooth fade-in
+  - Login form hidden initially, reveals after modal dismissal
+  - Auto-dismiss after 6 seconds for better UX
 - Database connection retry logic
 - User-friendly error messages
+
+### **Authentication Flow Architecture**
+
+**Public Access:**
+- Homepage (`/`) - Accessible to all users
+- Login page (`/login`) - User authentication interface
+
+**Protected Routes:**
+- Analysis endpoints: `/predict`, `/results`
+- Interactive features: `/chatbot`, `/assistant`
+- Dashboard: `/dashboard`, `/api/dashboard`
+- Advanced AI: `/api/tumor-stage`, `/api/prognosis`
+
+**Error Handling Pattern:**
+```python
+# Backend (app.py)
+def get_authenticated_user(authorization: Optional[str] = Header(None)):
+    if not authorization:
+        raise HTTPException(
+            status_code=401,
+            detail="Please log in to access this feature"
+        )
+    # Verify JWT token...
+```
+
+```javascript
+// Frontend (JavaScript)
+const response = await fetch('/predict', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` }
+});
+
+if (response.status === 401) {
+    const error = await response.json();
+    // Redirect with modal message
+    window.location.href = '/login?message=' + encodeURIComponent(error.detail);
+}
+```
+
+**Modal UX Flow:**
+1. User attempts protected action without auth → 401 error
+2. Frontend redirects to `/login?message=<error_message>`
+3. Login page loads with form hidden (opacity: 0)
+4. Beautiful modal appears with blurred gradient background
+5. User clicks "Sign In to Continue" → Modal fades out
+6. Login form elegantly fades in with smooth animation
+7. Or: Auto-dismiss after 6 seconds if user doesn't interact
 
 ---
 
 ## **Project Structure**
 
 ```
-Brain Tumor Project/
+Brain Tumer Project/
 ├── webapp/                          # FastAPI backend
-│   ├── app.py                       # Main application server
-│   ├── firebase_config.py           # Firebase integration
+│   ├── app.py                       # Main application server (4,935 lines)
+│   ├── init_services.py             # Centralized Firebase & Groq initialization
+│   ├── firebase_config.py           # Firebase integration (legacy)
 │   ├── auth.py                      # Authentication logic
-│   ├── login.html                   # Login page
+│   ├── login.html                   # Login page with modal auth flow
 │   ├── dashboard.html               # User dashboard
 │   ├── results_template.html        # Results display
 │   └── assistant_template.html      # AI assistant chat
@@ -388,6 +505,7 @@ Brain Tumor Project/
 │   │   ├── preprocess.py            # Image preprocessing
 │   │   └── multimodal_dataset.py    # Dataset classes
 │   ├── train/
+│   │   ├── train_resnet50.py        # Comprehensive ResNet50 training (437 lines)
 │   │   ├── train_classification.py  # Training scripts
 │   │   ├── train_multimodal.py      # Multimodal training
 │   │   └── baseline_sklearn.py      # Baseline models
@@ -398,6 +516,8 @@ Brain Tumor Project/
 │   └── inference/
 │       └── predict.py               # Inference utilities
 │
+├── train_models.py                  # Convenient training runner script
+│
 ├── Dataset/                         # Training data
 │   ├── Brain Tumor CT scan Images/
 │   │   ├── Healthy/
@@ -406,14 +526,9 @@ Brain Tumor Project/
 │       ├── Healthy/
 │       └── Tumor/
 │
-├── models/                          # Trained model checkpoints
-│   ├── model_binary.pth             # Binary CT model
-│   ├── model_multiclass.pth         # Multiclass MRI model
-│   └── model_basic.pth              # Fallback model
-│
-├── deploy/                          # Deployment configs
-│   └── k8s/
-│       └── deployment.yaml          # Kubernetes deployment
+├── model_binary.pth                 # Binary CT model (root directory)
+├── model_multiclass.pth             # Multiclass MRI model (root directory)
+├── model_basic.pth                  # Fallback model (root directory)
 │
 ├── notebooks/                       # Jupyter notebooks
 │   ├── 01_exploration.ipynb         # Data exploration
@@ -683,16 +798,45 @@ python -m uvicorn webapp.app:app --reload --host 0.0.0.0 --port 8000
 # 7. Access at http://localhost:8000
 ```
 
-### **Production Deployment**
-```bash
-# Using Docker
-docker build -t mediscopeai:latest .
-docker run -p 8000:8000 -e GROQ_API_KEY=xxx mediscopeai:latest
+### **Production Deployment (DigitalOcean Droplets)**
 
-# Using Kubernetes
-kubectl apply -f deploy/k8s/deployment.yaml
-kubectl expose deployment mediscopeai --type=LoadBalancer --port=80
+**Recommended Setup:**
+- **Droplet Size**: 2 vCPU, 4GB RAM (Basic tier: $24/month)
+- **OS**: Ubuntu 22.04 LTS
+- **Storage**: 80GB SSD (sufficient for models + dependencies)
+- **Extras**: Enable monitoring, weekly backups recommended
+
+```bash
+# 1. SSH into droplet
+ssh root@your-droplet-ip
+
+# 2. Install dependencies
+sudo apt update && sudo apt upgrade -y
+sudo apt install python3.10 python3-pip python3-venv git nginx certbot -y
+
+# 3. Clone and setup
+git clone https://github.com/manojmahadevappa/MediscopeAI.git
+cd MediscopeAI
+python3 -m venv env
+source env/bin/activate
+pip install -r requirements.txt
+
+# 4. Configure environment
+export FIREBASE_CREDENTIALS="/path/to/firebase-service-account.json"
+export GROQ_API_KEY="your_groq_api_key"
+
+# 5. Create systemd service for auto-restart
+# See README.md for complete systemd configuration
+
+# 6. Setup Nginx reverse proxy + SSL (Let's Encrypt)
+sudo certbot --nginx -d your-domain.com
+
+# 7. Start service
+sudo systemctl enable mediscopeai
+sudo systemctl start mediscopeai
 ```
+
+**Note**: Docker configuration planned for future release.
 
 ---
 

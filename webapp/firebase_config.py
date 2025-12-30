@@ -8,6 +8,9 @@ from firebase_admin import credentials, firestore, auth
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 
+# Import init_services module to access firestore_client
+import webapp.init_services as init_services
+
 # Initialize Firebase Admin SDK
 def init_firebase():
     """Initialize Firebase Admin SDK with service account"""
@@ -28,23 +31,6 @@ def init_firebase():
             # Parse JSON from environment variable
             cred_dict = json.loads(firebase_creds)
             cred = credentials.Certificate(cred_dict)
-        elif os.getenv('FIREBASE_PROJECT_ID'):
-            # Build credentials from individual environment variables (Railway/Render)
-            cred_dict = {
-                "type": "service_account",
-                "project_id": os.getenv('FIREBASE_PROJECT_ID'),
-                "private_key_id": os.getenv('FIREBASE_PRIVATE_KEY_ID'),
-                "private_key": os.getenv('FIREBASE_PRIVATE_KEY', '').replace('\\n', '\n'),
-                "client_email": os.getenv('FIREBASE_CLIENT_EMAIL'),
-                "client_id": os.getenv('FIREBASE_CLIENT_ID'),
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                "client_x509_cert_url": f"https://www.googleapis.com/robot/v1/metadata/x509/{os.getenv('FIREBASE_CLIENT_EMAIL', '')}",
-                "universe_domain": "googleapis.com"
-            }
-            cred = credentials.Certificate(cred_dict)
-            print("✅ Using Firebase credentials from environment variables")
         else:
             # Fall back to service account file
             cred_path = os.path.join(os.path.dirname(__file__), 'firebase-service-account.json')
@@ -66,8 +52,10 @@ def init_firebase():
 
 # Get Firestore client
 def get_firestore_db():
-    """Get Firestore database client"""
-    return firestore.client()
+    """Get Firestore database client from shared init_services"""
+    if init_services.firestore_client is None:
+        raise RuntimeError("Firebase is not initialized. Check FIREBASE_CREDENTIALS environment variable.")
+    return init_services.firestore_client
 
 
 class FirebaseAuth:

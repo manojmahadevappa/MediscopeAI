@@ -26,11 +26,14 @@
 - **📄 Comprehensive Reports**: Downloadable PDF reports with full diagnostic details
 
 ### Technical Highlights
-- **Deep Learning Models**: ResNet-based architecture with transfer learning
-- **Real-time Inference**: Fast prediction with model caching
+- **Deep Learning Models**: ResNet50 architecture with ImageNet transfer learning
+- **Real-time Inference**: Sub-200ms predictions with model caching
+- **Service Initialization**: Robust Firebase & Groq initialization with graceful degradation
 - **Cloud Storage**: Firebase Firestore for scalable data management
 - **Responsive UI**: Modern, medical-grade interface with Tailwind CSS
+- **Smart Authentication**: Beautiful modal-based auth flow with friendly UX
 - **HIPAA-Compliant Design**: Privacy-focused architecture
+- **Production Ready**: Streamlined deployment with environment-based configuration
 
 ---
 
@@ -295,7 +298,18 @@ Open your browser and navigate to:
    - At least one scan required
 5. Click **"Analyze Scans with AI"**
 
-### 3. View Results
+### 3. Authentication
+
+- **Public Pages**: Homepage (/) - accessible to all users
+- **Protected Features**: Analysis (/predict), Results (/results), Chatbot (/chatbot), Assistant (/assistant)
+- **Smart Redirect**: Attempting to access protected features without login shows a beautiful modal:
+  - Elegant popup with authentication message
+  - "Sign In to Continue" button
+  - Auto-dismiss after 6 seconds
+  - Smooth fade-in of login form after dismissal
+- **Session Management**: JWT tokens stored in localStorage
+
+### 4. View Results
 
 After analysis completes (~2-5 seconds):
 - **Diagnosis Card**: Shows prediction (Healthy/Benign/Malignant) with confidence
@@ -304,13 +318,13 @@ After analysis completes (~2-5 seconds):
 - **Survival Rate Estimation**: AI-generated prognosis
 - **Detailed Probabilities**: Confidence levels for each class
 
-### 4. Medical Assistant Chat
+### 5. Medical Assistant Chat
 
 1. From results page, click **"AI Doctor Assistant"**
 2. Ask medical questions about the diagnosis
 3. Get AI-powered responses based on analysis results
 
-### 5. Dashboard
+### 6. Dashboard
 
 1. Navigate to **Dashboard** (http://localhost:8000/dashboard)
 2. View **Analysis History**:
@@ -332,7 +346,8 @@ After analysis completes (~2-5 seconds):
 Brain Tumer Project/
 ├── webapp/                          # Main application
 │   ├── app.py                      # FastAPI main application
-│   ├── firebase_config.py          # Firebase initialization
+│   ├── init_services.py            # Centralized Firebase & Groq initialization
+│   ├── firebase_config.py          # Firebase initialization (deprecated)
 │   ├── auth.py                     # Authentication helpers
 │   ├── dashboard.html              # Dashboard UI
 │   ├── login.html                  # Login/Signup page
@@ -398,9 +413,9 @@ Brain Tumer Project/
 │
 ├── requirements.txt                 # Python dependencies
 ├── manifest.csv                     # Dataset manifest
+├── train_models.py                 # Convenient model training runner
 ├── .env                            # Environment variables
 ├── .gitignore                      # Git ignore rules
-├── Dockerfile                      # Docker configuration
 └── README.md                       # This file
 ```
 
@@ -426,26 +441,48 @@ Dataset/
     └── Tumor/
 ```
 
-### Train Binary Model
+### Train Binary Model (CT Scans)
 
 ```powershell
-python src/train/train_basic.py \
-  --data-dir "Dataset/Brain Tumor MRI images" \
-  --epochs 20 \
-  --batch-size 32 \
-  --lr 0.001 \
-  --output-model model_binary.pth
+# Using the comprehensive ResNet50 training script
+python src/train/train_resnet50.py \
+  --data_dir "Dataset/Brain Tumor CT scan Images" \
+  --model_type binary \
+  --epochs 50 \
+  --batch_size 32 \
+  --lr 0.0001 \
+  --output_dir .
+
+# Or use the convenient runner script
+python train_models.py --model binary
 ```
 
-### Train Multiclass Model
+### Train Multiclass Model (MRI Scans)
 
 ```powershell
-python src/train/train_classification.py \
-  --data-dir "Dataset/Brain Tumor MRI images" \
-  --num-classes 3 \
-  --epochs 30 \
-  --batch-size 16
+# Using the comprehensive ResNet50 training script
+python src/train/train_resnet50.py \
+  --data_dir "Dataset/Brain Tumor MRI images" \
+  --model_type multiclass \
+  --epochs 75 \
+  --batch_size 16 \
+  --lr 0.0001 \
+  --output_dir .
+
+# Or use the convenient runner script
+python train_models.py --model multiclass
 ```
+
+### Training Features
+
+- **Architecture**: ResNet50 with ImageNet pretrained weights
+- **Transfer Learning**: Freezes early layers, fine-tunes final 20 layers
+- **Data Augmentation**: RandomCrop, RandomHorizontalFlip, RandomRotation, ColorJitter
+- **80/20 Split**: Automatic train/validation split with random_split (seed=42)
+- **Early Stopping**: Patience of 15 epochs to prevent overfitting
+- **Learning Rate Scheduling**: ReduceLROnPlateau for adaptive learning
+- **Comprehensive Metrics**: Accuracy, Precision, Recall, F1, AUC-ROC
+- **Visualization**: Automatic generation of training curves and confusion matrix plots
 
 ### Training Parameters
 
@@ -467,6 +504,31 @@ python -m json.tool experiments/exp_001/metrics.json
 ---
 
 ## 🔌 API Documentation
+
+### Authentication Flow
+
+**Public Endpoints:**
+- `GET /` - Homepage
+- `GET /login` - Login page
+- `POST /api/login` - User authentication
+- `POST /api/signup` - User registration
+
+**Protected Endpoints** (require `Authorization: Bearer <token>` header):
+- `POST /predict` - Analyze scans
+- `GET /results` - View results
+- `GET /chatbot` - Chat interface
+- `GET /assistant` - AI assistant
+- `POST /api/tumor-stage` - Tumor staging
+- `POST /api/prognosis` - Survival prediction
+- `POST /chat` - Chat message
+- `GET /dashboard` - User dashboard
+- `GET /api/dashboard` - Dashboard data
+
+**Authentication Error Handling:**
+- Returns `401 Unauthorized` with JSON: `{"detail": "Error message"}`
+- Frontend intercepts 401 and redirects to login with modal message
+- Modal displays authentication requirement with smooth UX
+- Login form reveals after modal dismissal
 
 ### Authentication Endpoints
 

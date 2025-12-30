@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, Request, Header, HTTPException, Depends, Form
+﻿from fastapi import FastAPI, File, UploadFile, Request, Header, HTTPException, Depends, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from typing import Optional
@@ -6,22 +6,19 @@ import uvicorn
 import sys
 import os
 import json
-from groq import Groq
+
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
-# Import Firebase modules
-from webapp.firebase_config import (
-    init_firebase, FirebaseAuth, FirebaseAnalysis, FirebaseChat, get_firestore_db
-)
+# Import new service initializers
+from webapp.init_services import register_startup, firebase_admin, firestore_client
+import webapp.init_services as init_services
+
+# Import Firebase helper classes
+from webapp.firebase_config import FirebaseAuth, FirebaseAnalysis, FirebaseChat
 
 app = FastAPI(title="Brain Tumor AI Demo")
-
-# Initialize Firebase on startup
-@app.on_event("startup")
-async def startup_event():
-    init_firebase()
-    print("✅ MediscopeAI server started with Firebase authentication")
+register_startup(app)
 
 # Load environment variables from .env file
 from dotenv import load_dotenv
@@ -102,12 +99,8 @@ def train_medical_assistant_model():
     
     return True
 
-# Initialize AI backend API key
-AI_API_KEY = os.getenv("GROQ_API_KEY")
-if not AI_API_KEY:
-    print("⚠️ Warning: AI_API_KEY not found in environment variables")
-ai_llm_client = Groq(api_key=AI_API_KEY) if AI_API_KEY else None
-
+# Note: Groq client is initialized via init_services.py and available as init_services.groq_client
+# Note: Firebase is initialized via init_services.py and available as firebase_admin, firestore_client
 # Note: train_medical_assistant_model() is called during initial setup
 
 
@@ -377,15 +370,23 @@ SEVERITY_MAPPING = {
 
 # Authentication helper
 def get_authenticated_user(authorization: Optional[str] = Header(None)):
-    """Get current user from authorization header"""
+    """Get current user from authorization header, return 401 with message if not authenticated"""
+    
     if not authorization or not authorization.startswith('Bearer '):
-        raise HTTPException(status_code=401, detail="Not authenticated")
+        # Return 401 with message for frontend to handle redirect
+        raise HTTPException(
+            status_code=401,
+            detail="Please log in to access this feature"
+        )
     
     token = authorization.split(' ')[1]
     user_data = FirebaseAuth.verify_token(token)
     
     if not user_data:
-        raise HTTPException(status_code=401, detail="Invalid or expired session")
+        raise HTTPException(
+            status_code=401,
+            detail="Your session has expired. Please log in again"
+        )
     
     return user_data
 
@@ -632,7 +633,10 @@ Keep each section concise (2-3 sentences) and use proper line breaks between sec
 """
         
         # Inference using trained Medical AI Assistant
-        response = ai_llm_client.chat.completions.create(
+        if not init_services.groq_client:
+            return "AI Assistant unavailable. Please configure GROQ_API_KEY."
+        
+        response = init_services.groq_client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
@@ -812,7 +816,7 @@ def ensure_model_loaded():
 
 @app.get("/", response_class=HTMLResponse)
 async def index(authorization: Optional[str] = Header(None)):
-    # Check if user is authenticated
+    # Check if user is authenticated (optional for homepage)
     user_session = None
     if authorization and authorization.startswith('Bearer '):
         token = authorization.split(' ')[1]
@@ -1616,8 +1620,10 @@ async def index(authorization: Optional[str] = Header(None)):
         });
         
         if (res.status === 401) {
-          alert('⚠️ Session expired. Please login again.');
-          window.location.href = '/login';
+          // Parse error message and redirect to login with modal
+          const errorData = await res.json().catch(() => ({ detail: 'Please log in to analyze scans' }));
+          const message = errorData.detail || 'Please log in to analyze scans';
+          window.location.href = '/login?message=' + encodeURIComponent(message);
           return;
         }
         
@@ -2049,6 +2055,17 @@ async def analyze_page():
         progressBar.style.width = progress + '%';
         progressText.textContent = Math.round(progress);
         statusMessage.textContent = 'Processing analysis...';
+        
+        // Check for authentication errors
+        if (response.status === 401) {
+          clearInterval(progressInterval);
+          loadingModal.classList.add('hidden');
+          // Parse error message and redirect to login with modal
+          const errorData = await response.json().catch(() => ({ detail: 'Please log in to analyze scans' }));
+          const message = errorData.detail || 'Please log in to analyze scans';
+          window.location.href = '/login?message=' + encodeURIComponent(message);
+          return;
+        }
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Server error' }));
@@ -3618,7 +3635,7 @@ async def security_page():
     return HTMLResponse(content=html)
 
 @app.get('/results', response_class=HTMLResponse)
-async def results_page():
+async def results_page(user_session: dict = Depends(get_authenticated_user)):
     global LATEST_RESULT
     
     if LATEST_RESULT is None:
@@ -3657,8 +3674,8 @@ async def results_page():
 
 
 @app.get('/chatbot', response_class=HTMLResponse)
-async def chatbot_page():
-    """Simple chatbot page accessible to all users"""
+async def chatbot_page(user_session: dict = Depends(get_authenticated_user)):
+    """Chatbot page - requires authentication"""
     html_content = """
 <!DOCTYPE html>
 <html lang="en">
@@ -3938,7 +3955,7 @@ async def chatbot_page():
     return HTMLResponse(content=html_content)
 
 @app.get('/assistant', response_class=HTMLResponse)
-async def assistant_page():
+async def assistant_page(user_session: dict = Depends(get_authenticated_user)):
     # Read the assistant page template
     template_path = os.path.join(os.path.dirname(__file__), 'assistant_page.html')
     try:
@@ -4070,7 +4087,7 @@ async def get_tumor_stage(
                 scan_type = "CT"
         
         # Use Vision AI model to analyze the actual scan image
-        if scan_image_base64 and ai_llm_client:
+        if scan_image_base64 and init_services.groq_client:
             print(f"\n🔬 Analyzing {scan_type} scan with Vision AI model...")
             
             vision_prompt = f"""You are an expert radiologist and neuro-oncologist analyzing a brain {scan_type} scan. 
@@ -4100,7 +4117,7 @@ Format your response as JSON:
 }}"""
             
             try:
-                chat_completion = ai_llm_client.chat.completions.create(
+                chat_completion = groq_client.chat.completions.create(
                     messages=[{
                         "role": "user",
                         "content": [
@@ -4158,7 +4175,7 @@ Format as JSON:
 
 For Benign tumors, indicate lower stages (I-II). For Malignant tumors like Glioma, indicate higher stages (III-IV)."""
                 
-                chat_completion = ai_llm_client.chat.completions.create(
+                chat_completion = groq_client.chat.completions.create(
                     messages=[{"role": "user", "content": fallback_prompt}],
                     model="llama-3.3-70b-versatile",
                     temperature=0.3,
@@ -4199,7 +4216,7 @@ Format as JSON:
 
 For Benign tumors, indicate lower stages (I-II). For Malignant tumors like Glioma, indicate higher stages (III-IV)."""
             
-            chat_completion = ai_llm_client.chat.completions.create(
+            chat_completion = groq_client.chat.completions.create(
                 messages=[{"role": "user", "content": fallback_prompt}],
                 model="llama-3.3-70b-versatile",
                 temperature=0.3,
@@ -4267,7 +4284,7 @@ async def get_prognosis(
                 scan_type = "CT"
         
         # Use Vision AI model to analyze the actual scan image for survival estimation
-        if scan_image_base64 and ai_llm_client:
+        if scan_image_base64 and init_services.groq_client:
             print(f"\n🔬 Analyzing {scan_type} scan for survival rate estimation with Vision AI...")
             
             vision_prompt = f"""You are an expert neuro-oncologist analyzing a brain {scan_type} scan for prognosis estimation.
@@ -4308,7 +4325,7 @@ For Benign tumors or small well-defined tumors, indicate excellent prognosis (>9
 For Malignant/aggressive tumors like Glioblastoma, provide realistic lower survival rates."""
             
             try:
-                chat_completion = ai_llm_client.chat.completions.create(
+                chat_completion = groq_client.chat.completions.create(
                     messages=[{
                         "role": "user",
                         "content": [
@@ -4364,7 +4381,7 @@ Format as JSON:
 
 If diagnosis is 'Benign' or 'Healthy', indicate excellent prognosis (>95% survival rates)."""
                 
-                chat_completion = ai_llm_client.chat.completions.create(
+                chat_completion = groq_client.chat.completions.create(
                     messages=[{"role": "user", "content": fallback_prompt}],
                     model="llama-3.3-70b-versatile",
                     temperature=0.3,
@@ -4403,7 +4420,7 @@ Format as JSON:
 
 If diagnosis is 'Benign' or 'Healthy', indicate excellent prognosis (>95% survival rates)."""
             
-            chat_completion = ai_llm_client.chat.completions.create(
+            chat_completion = groq_client.chat.completions.create(
                 messages=[{"role": "user", "content": fallback_prompt}],
                 model="llama-3.3-70b-versatile",
                 temperature=0.3,
@@ -4512,7 +4529,10 @@ IMPORTANT GUIDELINES:
             })
         
         # Call Medical AI Assistant
-        response = ai_llm_client.chat.completions.create(
+        if not init_services.groq_client:
+            raise HTTPException(status_code=503, detail="AI service unavailable")
+        
+        response = init_services.groq_client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=messages,
             temperature=0.7,
@@ -4555,7 +4575,7 @@ async def predict(
     ct_file: UploadFile = File(None), 
     mri_file: UploadFile = File(None), 
     metadata: str = Form(None),
-    user_session: Optional[dict] = Depends(get_optional_user)
+    user_session: dict = Depends(get_authenticated_user)
 ):
   global LATEST_RESULT
   ok, detail, hint = ensure_model_loaded()

@@ -63,6 +63,21 @@
     .tab-inactive:hover {
       background: #f9fafb;
     }
+    
+    @keyframes scale-in {
+      0% {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    
+    .animate-scale-in {
+      animation: scale-in 0.3s ease-out;
+    }
   </style>
 </head>
 
@@ -283,6 +298,77 @@
   </div>
 
   <script>
+    // Check for redirect message on page load
+    window.addEventListener('DOMContentLoaded', function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const message = urlParams.get('message');
+      
+      if (message) {
+        // Hide the login container initially
+        const loginContainer = document.querySelector('.min-h-screen.flex.items-center');
+        if (loginContainer) {
+          loginContainer.style.opacity = '0';
+          loginContainer.style.pointerEvents = 'none';
+        }
+        
+        // Show modal with the message
+        showLoginModal(decodeURIComponent(message));
+        
+        // Clean up URL without reloading the page
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    });
+    
+    function showLoginModal(message) {
+      // Create modal overlay with blurred background
+      const modalHtml = `
+        <div id="login-modal" class="fixed inset-0 bg-gradient-to-br from-blue-900/20 to-purple-900/20 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all animate-scale-in">
+            <div class="p-8 text-center">
+              <div class="w-16 h-16 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-lock text-blue-600 text-2xl"></i>
+              </div>
+              <h3 class="text-2xl font-bold text-gray-900 mb-3">🔒 Authentication Required</h3>
+              <p class="text-gray-600 text-lg mb-6">${message}</p>
+              <button 
+                onclick="closeLoginModal()" 
+                class="btn-primary w-full py-3 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transition-all">
+                <i class="fas fa-sign-in-alt mr-2"></i>Sign In to Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+      
+      // Auto-close after 6 seconds
+      setTimeout(() => {
+        closeLoginModal();
+      }, 6000);
+    }
+    
+    function closeLoginModal() {
+      const modal = document.getElementById('login-modal');
+      const loginContainer = document.querySelector('.min-h-screen.flex.items-center');
+      
+      if (modal) {
+        modal.style.opacity = '0';
+        modal.style.transition = 'opacity 0.3s';
+        setTimeout(() => {
+          modal.remove();
+          
+          // Fade in the login form after modal is closed
+          if (loginContainer) {
+            loginContainer.style.transition = 'opacity 0.5s ease-in';
+            loginContainer.style.opacity = '1';
+            loginContainer.style.pointerEvents = 'auto';
+          }
+        }, 300);
+      }
+    }
+    
     function switchTab(tab) {
       const loginForm = document.getElementById('login-form');
       const signupForm = document.getElementById('signup-form');
