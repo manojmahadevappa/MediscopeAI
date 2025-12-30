@@ -14,10 +14,10 @@
 
 ### Core Capabilities
 - **🔬 Multi-Modal Analysis**: Supports both CT and MRI scan uploads (single or combined)
-- **🎯 Three-Stage Classification**:
-  - Binary Classification: Healthy vs Tumor
+- **🎯 Advanced Classification**:
   - Multiclass Classification: Healthy, Benign, Malignant
   - Severity Assessment: Multiple severity levels for tumor staging
+  - Single-stage inference for optimal performance
 - **📊 AI Explainability**: Grad-CAM heatmaps showing model attention regions
 - **🩺 Survival Rate Prediction**: AI-powered prognosis using Groq LLama 3.3-70b
 - **💬 AI Medical Assistant**: Interactive chatbot for medical consultation
@@ -75,7 +75,7 @@
 - **Backend**: FastAPI with async support
 - **Database**: Firebase Firestore (NoSQL)
 - **Authentication**: Firebase Auth with JWT tokens
-- **AI Models**: PyTorch models (binary, multiclass, multimodal)
+- **AI Models**: PyTorch models (multiclass, multimodal)
 - **LLM Integration**: Groq API for medical consultation and prognosis
 - **Explainability**: Grad-CAM implementation for visual interpretation
 

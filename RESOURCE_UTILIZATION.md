@@ -32,10 +32,10 @@
 #### Application Files
 | Component | Size | Description |
 |-----------|------|-------------|
-| PyTorch Models | **172.85 MB** | Binary (42.71MB) + Multiclass (87.43MB) + Basic (42.71MB) |
+| PyTorch Models | **130.14 MB** | Multiclass (87.43MB) + Basic (42.71MB) |
 | Web Application | 0.55 MB | FastAPI app, HTML templates, static files |
 | Source Code | 0.10 MB | ML training scripts, utilities |
-| **Subtotal** | **173.50 MB** | Core application |
+| **Subtotal** | **130.79 MB** | Core application |
 
 #### Python Dependencies (Estimated)
 | Package Category | Estimated Size |
@@ -60,7 +60,7 @@
 
 #### **Total Storage Required**
 ```
-Core Application:     173 MB
+Core Application:     131 MB
 Python Environment:   500 MB
 System Overhead:      450 MB
 User Data Cache:      100 MB
@@ -87,10 +87,10 @@ Recommended:          3-5 GB (with deployment artifacts)
 #### Model Loading (One-time on startup)
 | Model | Memory Footprint |
 |-------|------------------|
-| Binary Model (ResNet50) | ~170 MB |
 | Multiclass Model (ResNet50) | ~350 MB |
-| Model Caching | ~100 MB |
-| **Total Models in Memory** | **~620 MB** |
+| Multimodal Model (ResNet50) | ~175 MB |
+| Model Caching | ~75 MB |
+| **Total Models in Memory** | **~600 MB** |
 
 #### Per-Request Memory (Inference)
 | Operation | Memory Spike |
@@ -103,21 +103,21 @@ Recommended:          3-5 GB (with deployment artifacts)
 
 #### Concurrent User Handling
 **With 1GB RAM:**
-- Base + Models: ~900 MB
-- Available for requests: ~100 MB
+- Base + Models: ~880 MB
+- Available for requests: ~120 MB
 - **Concurrent Users:** 0-1 user max
 - **Result:** System will OOM (Out of Memory) with multiple users
 
 **With 2GB RAM:**
-- Base + Models: ~900 MB
-- Available for requests: ~1.1 GB
-- **Concurrent Users:** 3-4 users
+- Base + Models: ~880 MB
+- Available for requests: ~1.12 GB
+- **Concurrent Users:** 3-5 users
 - **Result:** Acceptable for light traffic
 
 **With 4GB RAM:**
-- Base + Models: ~900 MB
-- Available for requests: ~3.1 GB
-- **Concurrent Users:** 8-10 users
+- Base + Models: ~880 MB
+- Available for requests: ~3.12 GB
+- **Concurrent Users:** 9-12 users
 - **Result:** Good for moderate traffic
 
 **RAM Verdict:** ❌ 1GB is **INSUFFICIENT**  
@@ -277,9 +277,9 @@ Cost:      ~$48-96/month (DigitalOcean, Linode)
 
 ### Immediate Issues You'll Face:
 1. **Out of Memory Crashes**
-   - Models alone consume ~620MB
+   - Models alone consume ~600MB
    - Base runtime: ~280MB
-   - Total: 900MB (90% of available RAM)
+   - Total: 880MB (88% of available RAM)
    - First inference attempt: **CRASH**
 
 2. **Swap Thrashing**

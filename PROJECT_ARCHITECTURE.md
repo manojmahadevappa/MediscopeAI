@@ -287,13 +287,14 @@ Stored Document Structure:
 
 ## **Key Design Decisions & Why They Make Sense**
 
-### **1. Two-Stage Classification Architecture**
-**Decision**: Separate binary (CT) and multiclass (MRI) models
+### **1. Single-Stage Multiclass Architecture**
+**Decision**: Unified multiclass model for all inputs
 
 **Rationale**:
-- Different imaging modalities have different characteristics
-- Binary model optimized for quick tumor presence detection
-- Multiclass model trained on higher-resolution MRI data for detailed classification
+- Memory efficient: Single model instead of multiple
+- Consistent predictions across modalities
+- Multiclass model handles CT-only, MRI-only, and combined inputs
+- Faster inference: No two-stage pipeline overhead
 - Allows flexibility: Users can upload CT-only, MRI-only, or both
 
 ### **2. Transfer Learning (ResNet-18)**
