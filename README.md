@@ -34,6 +34,7 @@
 - **Smart Authentication**: Beautiful modal-based auth flow with friendly UX
 - **HIPAA-Compliant Design**: Privacy-focused architecture
 - **Production Ready**: Streamlined deployment with environment-based configuration
+- **Memory Optimized**: Single model approach (87MB, ~400MB RAM) for efficient deployment
 
 ---
 

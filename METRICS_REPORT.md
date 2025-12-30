@@ -60,15 +60,15 @@ This document provides comprehensive performance metrics for the AI-powered brai
 ## 2. Model Deployment Specifications
 
 **Model Files:**
-- `model_multiclass.pth`: 87.43 MB (Primary classification model)
-- `model_basic.pth`: 42.71 MB (Fallback model)
+- `model_multiclass.pth`: 87.43 MB (Primary and only model)
 
-**Total Storage:** 130.14 MB
+**Total Storage:** 87.43 MB
 
 **Memory Requirements:**
-- Model Loading: ~600 MB RAM
+- Model Loading: ~400 MB RAM
 - Per Inference: ~200-350 MB RAM
 - Recommended: 2GB+ RAM for production
+- Minimum: 1GB RAM (tight but functional)
 
 **Inference Performance:**
 - Single Image: 1-3 seconds (CPU)
