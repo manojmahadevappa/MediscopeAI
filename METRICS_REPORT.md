@@ -4,65 +4,70 @@
 
 This document provides comprehensive performance metrics for the AI-powered brain tumor detection system.
 
+**Last Updated:** December 31, 2025  
+**Model Version:** v2.0 (Retrained with Improved Architecture)
+
 ## Model Architecture
 
-**Base Model:** ResNet50 from ImageNet1K_V2 pre-trained weights
+**Base Model:** MultiModalNet with dual ResNet18 encoders
 
 **Custom Modifications:**
+- Dual-Stream Architecture: Separate encoders for CT and MRI
 - Multiclass Classification Head: 3 classes (Healthy, Benign, Malignant)
-- Multimodal Fusion: Combines CT and MRI inputs for enhanced accuracy
+- Transfer Learning: ImageNet pretrained weights
+- Feature Fusion: Concatenation + normalization layer
 
 **Training Configuration:**
-- Transfer Learning: ImageNet pretrained weights
-- Fine-tuning: Last 20 layers trainable
 - Optimizer: Adam (lr=0.0001)
-- Scheduler: ReduceLROnPlateau (patience=10, factor=0.5)
-- Early Stopping: Patience of 15 epochs
-- Data Augmentation: RandomCrop, Flip, Rotation, ColorJitter
+- Scheduler: ReduceLROnPlateau (patience=3, factor=0.5)
+- Early Stopping: Patience of 5 epochs
+- Data Augmentation: RandomCrop, Flip, Rotation (±15°), ColorJitter
+- Class Weighting: Applied to handle imbalance (Healthy=0.74, Benign=1.59, Malignant=0.98)
+- Training Time: ~1.5 hours on CPU (15 epochs)
 
-## 1. Multiclass Tumor Classification Model
+## 1. Improved Multimodal Classification Model (v2.0)
 
 **Dataset Size:**
-- Total Images: 4,618 (2,300 Healthy + 2,318 Tumor)
-- Training: 3,694 (80%)
-- Validation: 924 (20%)
-- Split Method: random_split with seed=42
-**Dataset Size:**
-- **CT Scans:** 4,618 images (2,300 Healthy + 2,318 Tumor)
-- **MRI Scans:** 5,000 images (2,000 Healthy + 3,000 Tumor)
-- Training Split: 80%
-- Validation Split: 20%
-- Split Method: random_split with seed=42
+- **Total Images:** 8,283 (CT + MRI combined)
+- **CT Scans:** 3,873 images (1,716 Healthy + 2,157 Tumor)
+- **MRI Scans:** 4,410 images (1,997 Healthy + 2,413 Tumor)
+  - Glioma (Malignant): 672 images
+  - Meningioma (Benign): 1,112 images
+  - Pituitary (Benign): 629 images
+- **Training:** 5,798 images (70%)
+- **Validation:** 1,242 images (15%)
+- **Test:** 1,243 images (15%)
+- **Split Method:** Stratified split with random_state=42
 
-### Performance Metrics (MRI-based Classification)
+### Performance Metrics (Improved Model - December 2025)
 
 | Metric | Value |
 |--------|-------|
-| Accuracy | 0.9747 (97.47%) |
-| Precision | 0.9683 (96.83%) |
-| Recall | 0.9721 (97.21%) |
-| F1 Score | 0.9702 (97.02%) |
-| Sensitivity | 0.9721 (97.21%) |
-| Specificity | 0.9773 (97.73%) |
-| AUC ROC | 0.9952 (99.52%) |
-| AUC PR | 0.9918 (99.18%) |
-| MCC | 0.9494 (94.94%) |
-| Kappa | 0.9494 (94.94%) |
+| **Test Accuracy** | **0.9871 (98.71%)** |
+| **Validation Accuracy** | **0.9895 (98.95%)** |
+| Test Loss | 0.0522 |
+| Training Epochs | 15 (early stopped) |
 
-### Confusion Matrix
-| | Predicted Healthy | Predicted Benign | Predicted Malignant |
-|---|---|---|---|
-| **Actual Healthy** | 173 | 3 | 1 |
-| **Actual Benign** | 2 | 168 | 4 |
-| **Actual Malignant** | 2 | 2 | 170 |
+### Per-Class Performance
 
-## 2. Model Deployment Specifications
-## 2. Model Deployment Specifications
+| Class | Precision | Recall | F1-Score | Support |
+|-------|-----------|--------|----------|---------|
+| **Healthy** | 0.99 | 0.99 | 0.99 | 557 |
+| **Benign** | 0.97 | 1.00 | 0.98 | 261 |
+| **Malignant** | 0.99 | 0.98 | 0.99 | 425 |
+| **Weighted Avg** | **0.99** | **0.99** | **0.99** | **1,243** |
+
+### Training History
+
+| Epoch | Train Loss | Train Acc | Val Loss | Val Acc | Status |
+|-------|------------|-----------|----------|---------|--------|
+| 1 | 0.6308 | 0.8375 | 0.2824 | 0.9300 | ✓ Best |
 
 **Model Files:**
-- `model_multiclass.pth`: 87.43 MB (Primary and only model)
+- `model_multiclass.pth`: 87.43 MB (Production model - v2.0)
+- `model_multiclass_best.pth`: 87.43 MB (Best checkpoint backup)
 
-**Total Storage:** 87.43 MB
+**Total Storage:** ~175 MB (including backup)
 
 **Memory Requirements:**
 - Model Loading: ~400 MB RAM
@@ -75,13 +80,28 @@ This document provides comprehensive performance metrics for the AI-powered brai
 - Batch Processing: 0.8-1.5 seconds per image
 - Grad-CAM Generation: +0.5-1 second
 
-## 3. Multimodal Fusion Model (CT + MRI)
+**Training Performance:**
+- Dataset: 8,283 images
+- Training Time: ~1.5 hours (15 epochs on CPU)
+- Average Epoch Time: ~6 minutes
 
-**Architecture:** Dual-Stream Multimodal Fusion Network
+## 3. Model Improvements Summary
 
-**Improvement:** +1.6% accuracy over single-modality
+**Previous Model Issues (v1.0):**
+- ❌ 50% test accuracy
+- ❌ Heavy bias toward "Benign" class
+- ❌ Misclassified CT tumors as Benign
+- ❌ Misclassified MRI healthy as Benign
 
-### Performance Metrics
+**New Model Achievements (v2.0):**
+- ✅ **98.71% test accuracy** (+48.71% improvement)
+- ✅ Balanced predictions across all classes
+- ✅ 99% precision on Healthy class
+- ✅ 97% precision on Benign class
+- ✅ 99% precision on Malignant class
+- ✅ Early stopping prevents overfitting
+- ✅ Class weighting handles imbalance
+- ✅ Pretrained ResNet18 for better feature extraction
 
 | Metric | Value |
 |--------|-------|
